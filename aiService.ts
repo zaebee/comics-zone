@@ -1,4 +1,3 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -31,7 +30,7 @@ const BEAT_SCHEMA: Schema = {
     choices: { 
       type: Type.ARRAY, 
       items: { type: Type.STRING },
-      description: "Two distinct options for the user (only for decision pages)."
+      description: "Two distinct, concrete action options for the user that directly address the immediate scene conflict. (Only for decision pages)."
     }
   },
   required: ["caption", "scene", "focus_char", "choices"]
@@ -145,9 +144,25 @@ export const generateStoryBeat = async (
     ).join('\n');
 
     // Logic: Story Driver
-    let coreDriver = `GENRE: ${selectedGenre}. TONE: ${storyTone}.`;
+    let coreDriver = `GENRE: ${selectedGenre}.`;
     if (selectedGenre === 'Custom') {
         coreDriver = `STORY PREMISE: ${customPremise || "A totally unique, unpredictable adventure"}.`;
+    }
+
+    // Logic: Tone Instructions
+    let toneInstruction = `TONE: ${storyTone}.`; // Base tone
+    if (storyTone.includes("ACTION-HEAVY")) {
+        toneInstruction += " INSTRUCTION: Prioritize kinetics. Use short, punchy sentences. Dialogue should be terse. Focus on movement and impact.";
+    } else if (storyTone.includes("INNER-MONOLOGUE")) {
+        toneInstruction += " INSTRUCTION: Prioritize psychological depth. Use captions extensively for the Hero's internal thoughts. Dialogue can be sparse.";
+    } else if (storyTone.includes("QUIPPY")) {
+        toneInstruction += " INSTRUCTION: Prioritize wit. Characters should use humor, sarcasm, and banter even in dangerous situations.";
+    } else if (storyTone.includes("OPERATIC")) {
+        toneInstruction += " INSTRUCTION: Prioritize drama. Language should be elevated, emotional, and intense. High stakes declarations.";
+    } else if (storyTone.includes("CASUAL")) {
+        toneInstruction += " INSTRUCTION: Prioritize naturalism. Dialogue should feel like real, messy conversation. Focus on relationships.";
+    } else if (storyTone.includes("WHOLESOME")) {
+        toneInstruction += " INSTRUCTION: Prioritize optimism. Focus on warmth, support, and wonder. Avoid cynicism or excessive grit.";
     }
 
     // Logic: Structure Lookup
@@ -179,7 +194,7 @@ export const generateStoryBeat = async (
     if (isFinalPage) {
         instruction += " FINAL PAGE. Text must end with 'TO BE CONTINUED...'.";
     } else if (isDecisionPage) {
-        instruction += " End with a PSYCHOLOGICAL choice (Values/Risks), not just 'Go Left/Right'.";
+        instruction += " CRITICAL: This is a BRANCHING POINT. The `scene` must describe an immediate, urgent conflict or dilemma. The `choices` MUST be two specific, conflicting actions the Hero can take RIGHT NOW to deal with the scene's problem. Do not offer abstract choices like 'Be brave'. Offer actions like 'Attack the drone' or 'Hide in the alley'.";
     }
 
     const systemInstruction = `You are a legendary comic book writer. You excel at visual storytelling, punchy dialogue, and driving the plot forward with high stakes.
@@ -199,6 +214,7 @@ export const generateStoryBeat = async (
     NARRATIVE GOAL: ${instruction}
     
     ${coreDriver} 
+    ${toneInstruction}
     ${guardrails}
     
     Generate the next panel beat in strictly VALID JSON format matching the schema.
