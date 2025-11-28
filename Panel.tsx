@@ -98,10 +98,12 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
                     onError={() => setImgError(true)}
                 />
             ) : face.imageUrl && imgError ? (
-                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 p-4 text-center border-4 border-red-500 m-2">
-                    <div className="text-4xl mb-2">⚠️</div>
-                    <p className="font-comic text-red-600 text-xl font-bold">IMAGE ERROR</p>
-                    <p className="font-comic text-gray-500 text-sm">The visuals failed to manifest.</p>
+                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 p-6 text-center border-[6px] border-red-600 m-1 z-20">
+                    <div className="text-6xl mb-4 animate-pulse">⚡</div>
+                    <h3 className="font-comic text-red-500 text-3xl font-bold uppercase tracking-widest mb-2" style={{textShadow: '2px 2px 0px black'}}>{t.imageErrorTitle}</h3>
+                    <p className="font-comic text-white text-lg leading-tight opacity-90">{t.imageErrorMsg}</p>
+                    {/* Decorative static pattern overlay */}
+                    <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,0,0,0.05)_25%,rgba(255,0,0,0.05)_50%,transparent_50%,transparent_75%,rgba(255,0,0,0.05)_75%,rgba(255,0,0,0.05)_100%)] bg-[length:20px_20px] pointer-events-none"></div>
                  </div>
             ) : null}
             

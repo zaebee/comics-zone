@@ -65,6 +65,8 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         downloadIssue: "DOWNLOAD ISSUE",
         createNew: "CREATE NEW ISSUE",
         inking: "INKING PAGE...",
+        imageErrorTitle: "VISUAL FEED LOST",
+        imageErrorMsg: "The multiverse connection was interrupted. The image data could not be retrieved.",
     },
     ru: {
         // API Key Dialog
@@ -124,6 +126,8 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         downloadIssue: "СКАЧАТЬ PDF",
         createNew: "СОЗДАТЬ НОВЫЙ",
         inking: "РИСУЕМ СТРАНИЦУ...",
+        imageErrorTitle: "СИГНАЛ ПОТЕРЯН",
+        imageErrorMsg: "Связь с мультивселенной прервана. Не удалось получить визуальные данные.",
     }
 };
 

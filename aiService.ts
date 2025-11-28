@@ -172,7 +172,7 @@ export const generateVillain = async (apiKey: string, summary: string, previousV
         model: "gemini-2.5-flash-image",
         contents: {
             parts: [
-                { text: `Comic book character sheet. Villain. Name: ${data.name}. Description: ${data.desc}. ${data.injuries ? `Visual Features: ${data.injuries}` : ''} Full body, neutral background.` },
+                { text: `Comic book character sheet. Villain. Name: ${data.name}. Description: ${data.desc}. ${data.injuries ? `Visual Features: ${data.injuries}` : ''} Full body, neutral background. Ensure strong character design.` },
                 // If previous villain exists, we could pass their image to maintain likeness, 
                 // but for "evolution" sometimes fresh generation with strong prompt is better to avoid artifacts.
                 // Let's rely on text description for now for flexibility.
@@ -337,7 +337,7 @@ export const generateStoryBeat = async (
 
 export const generateCharacterImage = async (apiKey: string, description: string, modelName: string): Promise<string> => {
     const ai = getClient(apiKey);
-    const prompt = `Character design sheet. Full body. Neutral background. High quality, detailed comic book style. Description: ${description}`;
+    const prompt = `Character design sheet. Full body. Neutral background. High quality, detailed comic book style. Description: ${description}. Ensure facial symmetry and distinct features.`;
 
     try {
         const res = await ai.models.generateContent({
@@ -393,7 +393,7 @@ export const generatePanelImage = async (
     }
 
     let promptText = `STYLE: ${visualMedium}. High quality, detailed. `;
-    const likenessInstructions = `INSTRUCTIONS: Maintain strict character likeness. Ensure facial symmetry.`;
+    const likenessInstructions = `INSTRUCTIONS: Maintain strict character likeness. Ensure facial symmetry matches reference. Preserve the unique clothing style. Match the established body type.`;
 
     const issueInfo = seriesProgress ? `ISSUE #${seriesProgress.issueNumber}` : "ISSUE #1";
 
