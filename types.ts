@@ -1,5 +1,4 @@
 
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -75,7 +74,7 @@ export interface Beat {
   dialogue?: string;
   scene: string;
   choices: string[];
-  focus_char: 'hero' | 'friend' | 'other';
+  focus_char: 'hero' | 'friend' | 'villain' | 'other';
 }
 
 export interface Persona {
@@ -84,11 +83,24 @@ export interface Persona {
   name: string;
 }
 
+// --- NEMESIS SYSTEM TYPES ---
+export interface Villain extends Persona {
+    origin: string; // How they were created in the previous issue
+    status: 'active' | 'defeated' | 'returning';
+    injuries?: string; // Visual cues for evolution (e.g. "scarred eye", "robotic arm")
+}
+
+export interface SeriesProgress {
+    issueNumber: number;
+    prevSummary: string; // The "Previously on..." context
+    villain: Villain | null;
+}
+
 export interface SavedState {
   hero: Persona | null;
   friend: Persona | null;
   selectedGenre: string;
-  selectedArtStyle: string; // New field
+  selectedArtStyle: string; 
   selectedLanguage: string;
   customPremise: string;
   storyTone: string;
@@ -96,6 +108,7 @@ export interface SavedState {
   comicFaces: ComicFace[];
   currentSheetIndex: number;
   isStarted: boolean;
+  seriesProgress?: SeriesProgress; // New field
 }
 
 // Lightweight structure for URL sharing
@@ -103,7 +116,7 @@ export interface SharedBeat {
     c?: string; // caption
     d?: string; // dialogue
     s: string;  // scene
-    fc: 'hero' | 'friend' | 'other';
+    fc: 'hero' | 'friend' | 'villain' | 'other';
     ch: string[]; // choices
     rc?: string; // resolved choice
 }
@@ -115,4 +128,6 @@ export interface SharedStory {
     t: string; // tone
     p: string; // premise
     b: SharedBeat[]; // beats
+    // Note: Series progress is tricky to share simply, so we default to Issue 1 for shares usually, 
+    // or we could add a `vol` field later.
 }

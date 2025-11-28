@@ -1,12 +1,11 @@
 
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
 
 import React from 'react';
-import { ComicFace, TOTAL_PAGES, UiLanguage } from './types';
+import { ComicFace, TOTAL_PAGES, UiLanguage, SeriesProgress } from './types';
 import { Panel } from './Panel';
 
 interface BookProps {
@@ -15,12 +14,15 @@ interface BookProps {
     isStarted: boolean;
     isSetupVisible: boolean;
     uiLang: UiLanguage;
+    seriesProgress?: SeriesProgress | null; // NEW
     onSheetClick: (index: number) => void;
     onChoice: (pageIndex: number, choice: string) => void;
     onOpenBook: () => void;
     onDownload: () => void;
     onReset: () => void;
-    onShare: () => string; // New Prop
+    onShare: () => string;
+    onNextIssue: () => void; // NEW
+    isGeneratingNextIssue: boolean; // NEW
 }
 
 export const Book: React.FC<BookProps> = (props) => {
@@ -35,6 +37,19 @@ export const Book: React.FC<BookProps> = (props) => {
         sheetsToRender.push({ front: undefined, back: undefined });
     }
 
+    const panelProps = {
+        allFaces: props.comicFaces,
+        uiLang: props.uiLang,
+        seriesProgress: props.seriesProgress,
+        onChoice: props.onChoice,
+        onOpenBook: props.onOpenBook,
+        onDownload: props.onDownload,
+        onReset: props.onReset,
+        onShare: props.onShare,
+        onNextIssue: props.onNextIssue,
+        isGeneratingNextIssue: props.isGeneratingNextIssue
+    };
+
     return (
         <div className={`book ${props.currentSheetIndex > 0 ? 'opened' : ''} transition-all duration-1000 ease-in-out`}
            style={ (props.isSetupVisible) ? { transform: 'translateZ(-600px) translateY(-100px) rotateX(20deg) scale(0.9)', filter: 'blur(6px) brightness(0.7)', pointerEvents: 'none' } : {}}>
@@ -42,10 +57,10 @@ export const Book: React.FC<BookProps> = (props) => {
               <div key={i} className={`paper ${i < props.currentSheetIndex ? 'flipped' : ''}`} style={{ zIndex: i < props.currentSheetIndex ? i : sheetsToRender.length - i }}
                    onClick={() => props.onSheetClick(i)}>
                   <div className="front">
-                      <Panel face={sheet.front} allFaces={props.comicFaces} uiLang={props.uiLang} onChoice={props.onChoice} onOpenBook={props.onOpenBook} onDownload={props.onDownload} onReset={props.onReset} onShare={props.onShare} />
+                      <Panel face={sheet.front} {...panelProps} />
                   </div>
                   <div className="back">
-                      <Panel face={sheet.back} allFaces={props.comicFaces} uiLang={props.uiLang} onChoice={props.onChoice} onOpenBook={props.onOpenBook} onDownload={props.onDownload} onReset={props.onReset} onShare={props.onShare} />
+                      <Panel face={sheet.back} {...panelProps} />
                   </div>
               </div>
           ))}

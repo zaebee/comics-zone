@@ -1,12 +1,11 @@
 
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
 
 import React, { useState, useEffect } from 'react';
-import { GENRES, ART_STYLES, LANGUAGES, Persona, UiLanguage } from './types';
+import { GENRES, ART_STYLES, LANGUAGES, Persona, UiLanguage, Villain, SeriesProgress } from './types';
 import { TRANSLATIONS, REMIXES_EN, REMIXES_RU } from './translations';
 
 interface SetupProps {
@@ -21,7 +20,8 @@ interface SetupProps {
     selectedLanguage: string;
     customPremise: string;
     richMode: boolean;
-    isSharedMode?: boolean; // New Prop
+    isSharedMode?: boolean; 
+    seriesProgress?: SeriesProgress | null; // NEW
     onHeroUpload: (file: File) => void;
     onFriendUpload: (file: File) => void;
     onHeroNameChange: (name: string) => void;
@@ -111,9 +111,14 @@ export const Setup: React.FC<SetupProps> = (props) => {
                     <button onClick={() => props.setUiLang('ru')} className={`font-comic text-xs px-2 py-1 border border-black ${props.uiLang === 'ru' ? 'bg-black text-white' : 'bg-white text-gray-500'}`}>RU</button>
                 </div>
                 
+                {/* Issue Number Badge */}
+                <div className="bg-red-600 text-white font-comic text-2xl py-2 px-6 mb-2 inline-block border-2 border-black -rotate-2 shadow-[4px_4px_0px_rgba(0,0,0,0.4)]">
+                    {t.currentIssue}{props.seriesProgress ? props.seriesProgress.issueNumber : 1}
+                </div>
+
                 {/* Shared Story Badge */}
                 {props.isSharedMode && (
-                     <div className="bg-purple-600 text-white font-comic text-xl py-1 px-4 mb-2 inline-block border-2 border-black -rotate-1 shadow-[4px_4px_0px_rgba(0,0,0,0.4)] animate-pulse">
+                     <div className="bg-purple-600 text-white font-comic text-xl py-1 px-4 mb-2 inline-block border-2 border-black rotate-1 shadow-[4px_4px_0px_rgba(0,0,0,0.4)] animate-pulse ml-4">
                          {t.sharedStoryMode}
                      </div>
                 )}
@@ -190,6 +195,28 @@ export const Setup: React.FC<SetupProps> = (props) => {
                                 </label>
                             )}
                         </div>
+                        
+                        {/* NEMESIS CARD (Only if issue > 1 and villain exists) */}
+                        {props.seriesProgress?.villain && (
+                             <div className="p-3 border-4 border-black bg-red-900 relative mt-2">
+                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white font-comic text-sm px-2 border-2 border-black uppercase whitespace-nowrap">
+                                    {t.wantedVillain}
+                                </div>
+                                <div className="flex gap-3 items-start mt-2">
+                                    {props.seriesProgress.villain.base64 && (
+                                        <img src={`data:image/jpeg;base64,${props.seriesProgress.villain.base64}`} className="w-20 h-20 object-cover border-2 border-white grayscale contrast-125" />
+                                    )}
+                                    <div className="text-white">
+                                        <p className="font-comic text-xl leading-none text-red-200">{props.seriesProgress.villain.name}</p>
+                                        <p className="font-comic text-xs text-gray-300 mt-1 line-clamp-2">{props.seriesProgress.villain.desc}</p>
+                                        <div className="mt-1 bg-black/50 p-1 text-[10px] font-mono text-red-400 border border-red-800">
+                                            {t.villainStatus} {t.villainStatusReturning}
+                                        </div>
+                                    </div>
+                                </div>
+                             </div>
+                        )}
+
                         <p className="text-[10px] text-gray-500 leading-tight mt-1 px-1">
                             {t.privacyPolicy}
                         </p>
@@ -235,7 +262,6 @@ export const Setup: React.FC<SetupProps> = (props) => {
                                     <span className="text-black">{t.novelMode}</span>
                                 </label>
                                 
-                                {/* New ART STYLE Section filling the empty block */}
                                 <div className="mt-2 pt-2 border-t-2 border-black/10">
                                      <p className="font-comic text-base mb-1 font-bold text-gray-800">{t.artStyle}</p>
                                      <select disabled={props.isSharedMode} value={props.selectedArtStyle} onChange={(e) => props.onArtStyleChange(e.target.value)} className="w-full font-comic text-lg p-1 border-2 border-black uppercase bg-white text-black cursor-pointer shadow-[3px_3px_0px_rgba(0,0,0,0.2)] disabled:opacity-50">
@@ -251,7 +277,7 @@ export const Setup: React.FC<SetupProps> = (props) => {
                     <button onClick={props.onLaunch} disabled={!props.hero || props.isTransitioning} className="comic-btn bg-red-600 text-white text-3xl px-6 py-3 flex-1 hover:bg-red-500 disabled:bg-gray-400 disabled:cursor-not-allowed uppercase tracking-wider">
                         {props.isTransitioning ? t.launching : (props.isSharedMode ? t.visualizeShared : t.launchBtn)}
                     </button>
-                    {hasSave && !props.isSharedMode && (
+                    {hasSave && !props.isSharedMode && !props.seriesProgress && (
                         <button onClick={props.onLoadSave} disabled={props.isTransitioning} className="comic-btn bg-yellow-400 text-black text-lg px-4 py-3 hover:bg-yellow-300 disabled:bg-gray-400 uppercase leading-none flex flex-col items-center justify-center min-w-[120px]">
                             <span className="text-xs font-bold opacity-60">{t.saveFound}</span>
                             {t.resumeBtn}

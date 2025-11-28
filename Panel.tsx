@@ -5,7 +5,7 @@
 */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { ComicFace, INITIAL_PAGES, GATE_PAGE, UiLanguage } from './types';
+import { ComicFace, INITIAL_PAGES, GATE_PAGE, UiLanguage, SeriesProgress } from './types';
 import { LoadingFX } from './LoadingFX';
 import { TRANSLATIONS } from './translations';
 
@@ -13,24 +13,25 @@ interface PanelProps {
     face?: ComicFace;
     allFaces: ComicFace[]; 
     uiLang: UiLanguage;
+    seriesProgress?: SeriesProgress | null; // NEW
     onChoice: (pageIndex: number, choice: string) => void;
     onOpenBook: () => void;
     onDownload: () => void;
     onReset: () => void;
-    onShare?: () => string; // Optional because Book calls it
+    onShare?: () => string; 
+    onNextIssue?: () => void; // NEW
+    isGeneratingNextIssue?: boolean; // NEW
 }
 
-export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, onChoice, onOpenBook, onDownload, onReset, onShare }) => {
+export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProgress, onChoice, onOpenBook, onDownload, onReset, onShare, onNextIssue, isGeneratingNextIssue }) => {
     const t = TRANSLATIONS[uiLang];
     const [linkCopied, setLinkCopied] = useState(false);
     const [imgError, setImgError] = useState(false);
 
-    // Reset error state when the image URL changes
     useEffect(() => {
         setImgError(false);
     }, [face?.imageUrl]);
 
-    // Randomize the animation style for this specific panel instance so it stays consistent
     const animationClass = useMemo(() => {
         if (!face || face.type === 'cover' || face.type === 'back_cover') return '';
         const anims = [
@@ -39,7 +40,6 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, onChoice, 
             'animate-pan-right', 
             'animate-pan-left'
         ];
-        // Use a pseudo-random pick based on ID or just random if ID is stable
         return anims[Math.floor(Math.random() * anims.length)];
     }, [face?.id]);
 
@@ -47,6 +47,7 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, onChoice, 
     if (face.isLoading && !face.imageUrl) return <LoadingFX uiLang={uiLang} />;
     
     const isFullBleed = face.type === 'cover' || face.type === 'back_cover';
+    const nextIssueNum = (seriesProgress?.issueNumber || 1) + 1;
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -160,7 +161,7 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, onChoice, 
                                     if(face.pageIndex && !face.selectedChoice) onChoice(face.pageIndex, choice); 
                                 }}
                                 className={`comic-btn w-full py-3 text-xl font-bold tracking-wider transition-all duration-300 ${stateClasses}`}
-                                style={{ animationDelay: `${1.5 + (i * 0.2)}s` }} // Delay button appearance slightly
+                                style={{ animationDelay: `${1.5 + (i * 0.2)}s` }}
                             >
                                 {choice}
                             </button>
@@ -175,7 +176,7 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, onChoice, 
                      <button onClick={(e) => { e.stopPropagation(); onOpenBook(); }}
                       disabled={!allFaces.find(f => f.pageIndex === GATE_PAGE)?.imageUrl}
                       className="comic-btn bg-yellow-400 px-10 py-4 text-3xl font-bold hover:scale-105 animate-bounce disabled:animate-none disabled:bg-gray-400 disabled:cursor-wait">
-                         {(!allFaces.find(f => f.pageIndex === GATE_PAGE)?.imageUrl) ? `${t.printing} ${allFaces.filter(f => f.type==='story' && f.imageUrl && (f.pageIndex||0) <= GATE_PAGE).length}/${INITIAL_PAGES}` : t.readIssue}
+                         {(!allFaces.find(f => f.pageIndex === GATE_PAGE)?.imageUrl) ? `${t.printing} ${allFaces.filter(f => f.type==='story' && f.imageUrl && (f.pageIndex||0) <= GATE_PAGE).length}/${INITIAL_PAGES}` : `${t.readIssue} ${seriesProgress ? '#' + seriesProgress.issueNumber : ''}`}
                      </button>
                  </div>
             )}
@@ -183,13 +184,19 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, onChoice, 
             {/* Back Cover Actions */}
             {face.type === 'back_cover' && (
                 <div className="absolute bottom-24 inset-x-0 flex flex-col items-center gap-4 z-20 w-full px-8">
+                    {onNextIssue && (
+                         <button onClick={(e) => { e.stopPropagation(); onNextIssue(); }} disabled={isGeneratingNextIssue} className="comic-btn bg-red-600 text-white px-8 py-3 text-2xl font-bold hover:scale-105 w-full animate-pulse disabled:opacity-70 disabled:animate-none">
+                             {isGeneratingNextIssue ? t.generatingNemesis : `${t.nextIssueBtn}${nextIssueNum}`}
+                         </button>
+                    )}
+                    
                     {onShare && (
                         <button onClick={handleShare} className="comic-btn bg-purple-500 text-white px-8 py-3 text-xl font-bold hover:scale-105 w-full">
                             {linkCopied ? t.linkCopied : t.shareBtn}
                         </button>
                     )}
                     <button onClick={(e) => { e.stopPropagation(); onDownload(); }} className="comic-btn bg-blue-500 text-white px-8 py-3 text-xl font-bold hover:scale-105 w-full">{t.downloadIssue}</button>
-                    <button onClick={(e) => { e.stopPropagation(); onReset(); }} className="comic-btn bg-green-500 text-white px-8 py-4 text-2xl font-bold hover:scale-105 w-full">{t.createNew}</button>
+                    <button onClick={(e) => { e.stopPropagation(); onReset(); }} className="comic-btn bg-green-500 text-white px-8 py-4 text-xl font-bold hover:scale-105 w-full opacity-80">{t.createNew}</button>
                 </div>
             )}
         </div>

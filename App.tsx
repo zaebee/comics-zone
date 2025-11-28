@@ -1,5 +1,4 @@
 
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -7,15 +6,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import jsPDF from 'jspdf';
-import { MAX_STORY_PAGES, BACK_COVER_PAGE, TOTAL_PAGES, INITIAL_PAGES, BATCH_SIZE, DECISION_PAGES, GENRES, ART_STYLES, TONES, LANGUAGES, ComicFace, Beat, Persona, UiLanguage, SavedState, SharedStory, SharedBeat } from './types';
+import { MAX_STORY_PAGES, BACK_COVER_PAGE, TOTAL_PAGES, INITIAL_PAGES, BATCH_SIZE, DECISION_PAGES, GENRES, ART_STYLES, TONES, LANGUAGES, ComicFace, Beat, Persona, UiLanguage, SavedState, SharedStory, SharedBeat, SeriesProgress } from './types';
 import { Setup } from './Setup';
 import { Book } from './Book';
 import { useApiKey } from './useApiKey';
 import { ApiKeyDialog } from './ApiKeyDialog';
-import { generateStoryBeat, generateCharacterImage, generatePanelImage } from './aiService';
+import { generateStoryBeat, generateCharacterImage, generatePanelImage, generateIssueSummary, generateVillain } from './aiService';
 
 // --- Constants ---
-// Switched to 2.5 Flash series for broader API key compatibility and speed
 const MODEL_TEXT_NAME = "gemini-2.5-flash";
 const MODEL_IMAGE_GEN_NAME = "gemini-2.5-flash-image";
 const SAVE_KEY = "infinite_heroes_save_v1";
@@ -29,6 +27,10 @@ const App: React.FC = () => {
 
   // --- Shared Story State ---
   const [sharedStory, setSharedStory] = useState<SharedStory | null>(null);
+
+  // --- Series State (The Nemesis System) ---
+  const [seriesProgress, setSeriesProgress] = useState<SeriesProgress | null>(null);
+  const [isGeneratingNextIssue, setIsGeneratingNextIssue] = useState(false);
 
   useEffect(() => {
       // Simple detection
@@ -102,14 +104,15 @@ const App: React.FC = () => {
                 richMode,
                 comicFaces,
                 currentSheetIndex,
-                isStarted: true
+                isStarted: true,
+                seriesProgress: seriesProgress || undefined
             };
             localStorage.setItem(SAVE_KEY, JSON.stringify(stateToSave));
         } catch (e) {
             console.error("Failed to save progress to local storage", e);
         }
     }
-  }, [comicFaces, currentSheetIndex, isStarted, selectedGenre, selectedArtStyle, selectedLanguage, customPremise, storyTone, richMode, sharedStory]);
+  }, [comicFaces, currentSheetIndex, isStarted, selectedGenre, selectedArtStyle, selectedLanguage, customPremise, storyTone, richMode, sharedStory, seriesProgress]);
 
   const loadFromSave = () => {
       try {
@@ -128,6 +131,7 @@ const App: React.FC = () => {
           setComicFaces(data.comicFaces);
           setCurrentSheetIndex(data.currentSheetIndex);
           setIsStarted(true);
+          if (data.seriesProgress) setSeriesProgress(data.seriesProgress);
           
           // Sync Refs
           heroRef.current = data.hero;
@@ -240,7 +244,8 @@ const App: React.FC = () => {
                     customPremise,
                     hero: heroRef.current,
                     friend: friendRef.current,
-                    modelName: MODEL_TEXT_NAME
+                    modelName: MODEL_TEXT_NAME,
+                    seriesProgress: seriesProgress
                  });
                } catch (e) {
                  handleAPIError(e);
@@ -274,10 +279,12 @@ const App: React.FC = () => {
               type,
               hero: heroRef.current,
               friend: friendRef.current,
+              villain: seriesProgress?.villain, // Pass Villain
               selectedGenre,
               selectedArtStyle,
               selectedLanguage,
-              modelName: MODEL_IMAGE_GEN_NAME
+              modelName: MODEL_IMAGE_GEN_NAME,
+              seriesProgress: seriesProgress
           });
           updateFaceState(faceId, { imageUrl: url, isLoading: false });
       } catch (e) {
@@ -311,8 +318,6 @@ const App: React.FC = () => {
       newFaces.forEach(f => { if (!historyRef.current.find(h => h.id === f.id)) historyRef.current.push(f); });
 
       try {
-          // In Shared Mode, we can potentially generate faster since we don't wait for text
-          // But we still want to stagger them slightly to not hit rate limits on image gen
           for (const pageNum of pagesToGen) {
                await generateSinglePage(`page-${pageNum}`, pageNum, pageNum === BACK_COVER_PAGE ? 'back_cover' : 'story');
                generatingPages.current.delete(pageNum);
@@ -339,13 +344,13 @@ const App: React.FC = () => {
     if (!heroRef.current.name.trim()) setHero({ ...heroRef.current, name: "The Hero" });
     if (friendRef.current && !friendRef.current.name.trim()) setFriend({ ...friendRef.current, name: "The Sidekick" });
 
-    // Clear previous save on new launch
-    localStorage.removeItem(SAVE_KEY);
-
+    // Clear previous save on new launch (but NOT series progress if continuing)
+    // Actually, launchStory is for starting from Setup. If SeriesProgress exists, we keep it.
+    
     setIsTransitioning(true);
     
     if (!sharedStory) {
-        // Random tone only if new story
+        // Random tone only if new story (or new issue)
         let availableTones = TONES;
         if (selectedGenre === "Teen Drama / Slice of Life" || selectedGenre === "Lighthearted Comedy") {
             availableTones = TONES.filter(t => t.includes("CASUAL") || t.includes("WHOLESOME") || t.includes("QUIPPY"));
@@ -371,6 +376,53 @@ const App: React.FC = () => {
     }, 1100);
   };
 
+  // --- NEMESIS SYSTEM: CONTINUE SERIES ---
+  const handleNextIssue = async () => {
+    setIsGeneratingNextIssue(true);
+    
+    try {
+        // 1. Summarize Current Issue
+        const summary = await generateIssueSummary(apiKey, historyRef.current, heroRef.current?.name || "Hero");
+        
+        // 2. Generate or Evolve Villain
+        // Pass current villain (if any) to evolve them
+        const villain = await generateVillain(apiKey, summary, seriesProgress?.villain || null);
+        
+        // 3. Update Series Progress
+        const nextIssueNum = (seriesProgress?.issueNumber || 1) + 1;
+        const newProgress: SeriesProgress = {
+            issueNumber: nextIssueNum,
+            prevSummary: summary,
+            villain: villain
+        };
+        setSeriesProgress(newProgress);
+
+        // 4. Rotate Genre for variety (Roguelike element)
+        const currentGenreIdx = GENRES.indexOf(selectedGenre);
+        if (selectedGenre !== 'Custom' && currentGenreIdx !== -1) {
+             const nextGenre = GENRES[(currentGenreIdx + 1) % (GENRES.length - 1)]; // Skip Custom
+             setSelectedGenre(nextGenre);
+             setCustomPremise(""); // Clear premise if rotating
+        }
+
+        // 5. Reset App State for new run
+        setIsStarted(false);
+        setComicFaces([]);
+        setCurrentSheetIndex(0);
+        historyRef.current = [];
+        generatingPages.current.clear();
+        
+        // 6. Show Setup again (with new Issue # and Villain card)
+        setShowSetup(true);
+
+    } catch (e) {
+        console.error("Failed to generate next issue data", e);
+        alert("Villain generation failed. The Nemesis escaped!");
+    } finally {
+        setIsGeneratingNextIssue(false);
+    }
+  };
+
   const handleChoice = (pageIndex: number, choice: string) => {
       // 1. Immediate Visual Feedback
       updateFaceState(`page-${pageIndex}`, { selectedChoice: choice });
@@ -394,13 +446,12 @@ const App: React.FC = () => {
       setCurrentSheetIndex(0);
       historyRef.current = [];
       generatingPages.current.clear();
+      setSeriesProgress(null); // Clear series progress on full reset
       
-      // Clear URL param if it exists so we can start fresh
       if (sharedStory) {
           window.history.pushState({}, document.title, window.location.pathname);
           setSharedStory(null);
       }
-      // Keep hero/friend for easy restart
   };
 
   const downloadPDF = () => {
@@ -435,7 +486,6 @@ const App: React.FC = () => {
   const handleHeroUpload = async (file: File) => {
        try { 
            const base64 = await fileToBase64(file); 
-           // Preserve existing name if replacing image
            setHero({ base64, desc: "The Main Hero", name: heroRef.current?.name || "" }); 
         } catch (e) { alert("Hero upload failed"); }
   };
@@ -486,6 +536,7 @@ const App: React.FC = () => {
           customPremise={customPremise}
           richMode={richMode}
           isSharedMode={!!sharedStory}
+          seriesProgress={seriesProgress} // Pass Series Data
           onHeroUpload={handleHeroUpload}
           onFriendUpload={handleFriendUpload}
           onHeroNameChange={(name) => handleHeroNameChange(name)}
@@ -505,12 +556,15 @@ const App: React.FC = () => {
           isStarted={isStarted}
           isSetupVisible={showSetup && !isTransitioning}
           uiLang={uiLang}
+          seriesProgress={seriesProgress} // Pass Series Data
           onSheetClick={handleSheetClick}
           onChoice={handleChoice}
           onOpenBook={() => setCurrentSheetIndex(1)}
           onDownload={downloadPDF}
           onReset={resetApp}
           onShare={getShareLink}
+          onNextIssue={handleNextIssue} // Connect handler
+          isGeneratingNextIssue={isGeneratingNextIssue} // Connect loading state
       />
     </div>
   );

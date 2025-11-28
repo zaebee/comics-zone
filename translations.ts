@@ -1,5 +1,4 @@
 
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -43,6 +42,15 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         builtWith: "Build with Gemini",
         createdBy: "Created by @ammaar",
         
+        // Nemesis / Series
+        currentIssue: "ISSUE #",
+        wantedVillain: "WANTED: NEMESIS",
+        villainStatus: "STATUS:",
+        villainStatusActive: "AT LARGE",
+        villainStatusReturning: "RETURNING",
+        nextIssueBtn: "CONTINUE TO ISSUE #",
+        generatingNemesis: "GENERATING NEMESIS...",
+        
         // Shared Story Extras
         sharedStoryMode: "SHARED STORY MODE",
         visualizeShared: "VISUALIZE SHARED STORY",
@@ -53,7 +61,7 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         // Book / Panel
         whatDrivesYou: "What drives you?",
         printing: "PRINTING...",
-        readIssue: "READ ISSUE #1",
+        readIssue: "READ ISSUE",
         downloadIssue: "DOWNLOAD ISSUE",
         createNew: "CREATE NEW ISSUE",
         inking: "INKING PAGE...",
@@ -93,6 +101,15 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         builtWith: "Сделано с Gemini",
         createdBy: "Создано @ammaar",
 
+        // Nemesis / Series
+        currentIssue: "ВЫПУСК №",
+        wantedVillain: "РАЗЫСКИВАЕТСЯ: ВРАГ",
+        villainStatus: "СТАТУС:",
+        villainStatusActive: "НА СВОБОДЕ",
+        villainStatusReturning: "ВОЗВРАЩАЕТСЯ",
+        nextIssueBtn: "ЧИТАТЬ ВЫПУСК №",
+        generatingNemesis: "ГЕНЕРАЦИЯ ВРАГА...",
+
         // Shared Story Extras
         sharedStoryMode: "РЕЖИМ СОВМЕСТНОЙ ИСТОРИИ",
         visualizeShared: "ВИЗУАЛИЗИРОВАТЬ ИСТОРИЮ",
@@ -103,7 +120,7 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         // Book / Panel
         whatDrivesYou: "Что движет тобой?",
         printing: "ПЕЧАТЬ...",
-        readIssue: "ЧИТАТЬ ВЫПУСК №1",
+        readIssue: "ЧИТАТЬ ВЫПУСК",
         downloadIssue: "СКАЧАТЬ PDF",
         createNew: "СОЗДАТЬ НОВЫЙ",
         inking: "РИСУЕМ СТРАНИЦУ...",
