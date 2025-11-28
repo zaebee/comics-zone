@@ -42,7 +42,7 @@ graph TD
     
     subgraph "AI Narrative Engine"
         App -->|Context + History| TextModel[Gemini 2.5 Flash]
-        TextModel -->|JSON Beat| Logic[Narrative Logic (Campbell/Propp)]
+        TextModel -->|JSON Beat| Logic["Narrative Logic (Campbell/Propp)"]
         Logic -->|Validated Prompt| ImageModel[Gemini 2.5 Flash-Image]
     end
     
