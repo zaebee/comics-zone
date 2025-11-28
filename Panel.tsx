@@ -23,6 +23,33 @@ interface PanelProps {
     isGeneratingNextIssue?: boolean;
 }
 
+const TypewriterText = ({ text, delay = 0 }: { text: string, delay?: number }) => {
+    const [currentText, setCurrentText] = useState('');
+    
+    useEffect(() => {
+        let timeoutId: any;
+        let intervalId: any;
+        
+        setCurrentText('');
+        
+        timeoutId = setTimeout(() => {
+            let i = 0;
+            intervalId = setInterval(() => {
+                setCurrentText(text.slice(0, i + 1));
+                i++;
+                if (i >= text.length) clearInterval(intervalId);
+            }, 20); // Typing speed
+        }, delay);
+        
+        return () => {
+            clearTimeout(timeoutId);
+            clearInterval(intervalId);
+        };
+    }, [text, delay]);
+    
+    return <>{currentText}</>;
+};
+
 export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProgress, onChoice, onOpenBook, onDownload, onReset, onShare, onNextIssue, isGeneratingNextIssue }) => {
     const t = TRANSLATIONS[uiLang];
     const [linkCopied, setLinkCopied] = useState(false);
@@ -190,7 +217,7 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
                                 <div className="bg-yellow-200 border-2 border-black p-2 shadow-[2px_2px_0px_rgba(0,0,0,0.5)] max-w-[95%] transform rotate-[-0.5deg]">
                                     <div className="caption-scroll max-h-[120px] overflow-y-auto pr-1">
                                         <p className="font-comic text-black text-sm md:text-base leading-tight font-bold tracking-wide">
-                                            {face.narrative.caption}
+                                            <TypewriterText text={face.narrative.caption} delay={500} />
                                         </p>
                                     </div>
                                 </div>
@@ -203,7 +230,7 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
                         <div className="absolute bottom-16 right-3 max-w-[85%] flex justify-end animate-pop-in" style={{animationDelay: '0.8s'}}>
                             <div className="relative bg-white border-2 border-black rounded-[20px] rounded-br-none p-3 shadow-[4px_4px_0px_rgba(0,0,0,0.3)] transform rotate-[1deg] animate-float">
                                 <p className="font-comic text-black text-lg md:text-xl leading-snug">
-                                    {face.narrative.dialogue}
+                                    <TypewriterText text={face.narrative.dialogue} delay={1000} />
                                 </p>
                                 <div className="absolute -bottom-[10px] right-0 w-0 h-0 border-l-[10px] border-l-transparent border-r-[0px] border-r-transparent border-t-[12px] border-t-black"></div>
                                 <div className="absolute -bottom-[6px] right-[2px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[0px] border-r-transparent border-t-[9px] border-t-white"></div>
