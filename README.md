@@ -1,63 +1,102 @@
+# 🦸‍♂️ Infinite Heroes: The AI Serial Comic Engine
 
-# Infinite Heroes - Dynamic AI Comics
+**Infinite Heroes** is a client-side, multimodal AI application that turns users into the protagonists of an infinite, evolving comic book series.
 
-A fully interactive, AI-powered comic book generator that turns users into the heroes of their own stories. Built with React, Tailwind CSS, and the **Google Gemini API**.
+Built with **React 19** and the **Google Gemini API**, it goes beyond simple image generation by implementing a persistent "Nemesis System," structured narrative theory, and complex state management to create a cohesive reading experience.
 
-## 🚀 Overview
+---
 
-Infinite Heroes allows users to upload a photo of themselves (and optionally a friend), select a genre, and generate a cohesive, multi-page comic book. The application utilizes the multimodal capabilities of Gemini to handle:
-1.  **Storytelling:** Generating plot beats, dialogue, and captions in real-time.
-2.  **Visuals:** Generating consistent comic panels while maintaining character likeness using reference images.
-3.  **Localization:** Translating the narrative into 15+ languages on the fly.
+## 🌟 Core Features
 
-## ✨ Key Features
+### 1. The Nemesis System (Serial Continuity)
+Unlike one-shot generators, Infinite Heroes remembers.
+*   **Villain Evolution:** If you finish Issue #1, the app summarizes the story and generates a "Villain Sheet" for the next issue.
+*   **Visual Memory:** The antagonist returns in Issue #2 with visual changes based on the previous battle (e.g., "scarred armor," "cybernetic eye").
+*   **Genre Rotation:** The app automatically rotates sub-genres (Horror → Action → Sci-Fi) to simulate a long-running comic series.
 
-*   **Character Consistency:** Uses image-prompting techniques to maintain the likeness of the Hero and Co-Star across different panels and poses.
-*   **3D Book Interface:** A custom CSS-3D engine that simulates a real comic book reading experience with page flips and glossy reflections.
-*   **Branching Narratives:** Decision points allow the user to influence the direction of the story.
-*   **Multi-Language Support:** Generate comics in English, Japanese, Spanish, Arabic, Hindi, and more.
-*   **PDF Export:** Download the generated issue as a formatted PDF.
-*   **Rich/Novel Mode:** Toggles between standard comic punchiness and deeper, novel-style narration.
+### 2. The Shared Multiverse
+*   **Script Sharing:** Users can generate a unique URL containing the *script* of their comic (dialogue, choices, scenes).
+*   **Re-Casting:** When another user opens a shared link, they are prompted to upload *their* own photo. The app then re-renders the entire comic using the shared script but starring the *new* user.
 
-## 🤖 AI Models Used
+### 3. Infinite Storage & Cloud Sync
+*   **IndexedDB:** The app uses a custom wrapper around the browser's `IndexedDB` to store gigabytes of Base64 comic pages, bypassing standard `localStorage` limits.
+*   **Webhook Sync:** Power users can provide a Webhook URL (n8n, Zapier, Make). The app pushes the full game state JSON to this endpoint, enabling external backups or CMS integrations.
 
-This project relies on the `@google/genai` SDK and targets the **Gemini 2.5 Flash** series for maximum performance and accessibility.
+### 4. Dynamic Visuals
+*   **Parallax 2.5D:** Panels feature interactive mouse-tracking parallax effects.
+*   **Ken Burns Effect:** AI-generated panels are animated with pans and zooms to create a "Motion Comic" feel.
+*   **Visual Mediums:** Users can override the standard comic style with "Claymation", "Ukiyo-e", "Pixel Art", and more.
 
-*   **Text & Logic:** `gemini-2.5-flash`
-    *   Used for scriptwriting, complex reasoning, translation, and JSON structuring.
-*   **Visuals:** `gemini-2.5-flash-image`
-    *   Used for character sheet generation and final comic panel rendering.
+---
 
-## 🛠️ Tech Stack
+## 🤖 Technical Architecture
 
-*   **Framework:** React 19
-*   **Styling:** Tailwind CSS + Custom CSS 3D Transforms
-*   **Fonts:** 'Bangers' (Headers), 'Neucha' (Cyrillic/Handwritten), and 'Comic Neue' (Body)
-*   **PDF Generation:** `jspdf`
-*   **AI Integration:** `@google/genai`
+### The Narrative Engine (`aiService.ts`)
+The AI doesn't just "write a story." It follows a strict **Campbell/Propp Narrative Circle**:
+1.  **Page 1:** Status Quo
+2.  **Page 2:** Inciting Incident (The Villain appears)
+3.  **Page 3:** Crossing the Threshold (User Decision)
+4.  **Page 6:** The Ordeal (Midpoint Climax)
+5.  **Page 10:** Resolution / Cliffhanger
 
-## 📦 Usage
+The prompt engineering uses **Chain-of-Thought** logic where the context window includes:
+*   Summary of previous issues (The "Series Bible").
+*   Visual descriptions of established characters.
+*   Strict JSON Schema validation to ensure the UI never breaks.
 
-1.  **API Key:** The app prompts you to enter your **Gemini API Key** upon launch. The key is stored safely in your browser's local storage.
-2.  **Setup:**
-    *   Upload a "Hero" image (Required).
-    *   Upload a "Co-Star" image (Optional).
-    *   Select Genre (e.g., Sci-Fi, Horror, Slice of Life) and Language.
-3.  **Reading:**
-    *   Click the cover to open the book.
-    *   Click pages to flip them.
-    *   Make choices on decision pages to continue the story.
-4.  **Export:**
-    *   Reach the back cover to download your comic as a PDF.
+### The Rendering Pipeline (`Panel.tsx`)
+1.  **Prompt Construction:** Merges User Persona + Art Style + Scene Description.
+2.  **Reference Injection:** Uses Gemini's Multimodal capabilities to pass the user's photo as an `inlineData` reference for character consistency.
+3.  **Layering:** Text bubbles are rendered as HTML overlays on top of the canvas, allowing for translation and accessibility (Screen Readers) that baked-in text would miss.
 
-## 🎨 Prompt Engineering Strategy
+---
 
-The application uses a "Beat" system. Instead of generating the whole story at once, it generates page-by-page "beats" based on the history of previous panels.
+## 🛠️ Stack & Dependencies
 
-*   **Context Window:** The AI is fed a history of previous captions and scene descriptions to ensure continuity.
-*   **Structured Output:** The text model returns strict JSON containing `caption`, `dialogue`, `scene`, and `focus_char`.
-*   **Reference Images:** The image generation step passes the user's uploaded base64 images as inline data to the model with strict instructions to use them as character references.
+*   **Frontend:** React 19, Tailwind CSS
+*   **AI:** `@google/genai` (Gemini 2.5 Flash & Flash-Image)
+*   **Storage:** Native `IndexedDB` (via `db.ts` wrapper)
+*   **PDF:** `jspdf` for physical issue printing
+*   **Fonts:** 'Bangers' (Headers), 'Neucha' (Handwritten/Cyrillic support)
 
-## 📝 License
+---
+
+## 📦 Setup & Usage
+
+### 1. Prerequisites
+You need a **Google Gemini API Key**.
+*   The key is stored **locally** in your browser.
+*   It is never sent to any server other than Google's API endpoints.
+
+### 2. Installation
+```bash
+npm install
+npm start
+```
+
+### 3. Webhook Integration (Optional)
+To back up your runs to the cloud:
+1.  Create a webhook in n8n/Zapier.
+2.  Go to the App Setup screen -> "Cloud Sync & Backup Settings".
+3.  Paste the URL.
+4.  Click "Sync". The app will POST the full `SavedState` JSON body.
+
+---
+
+## 🎨 Customization
+
+### Adding New Genres/Styles
+Modify `types.ts`:
+```typescript
+export const GENRES = [..., "Cyberpunk Western", "Eldritch Cooking Show"];
+export const ART_STYLES = [..., "80s Anime", "Charcoal Sketch"];
+```
+
+### Adjusting Pacing
+Modify `aiService.ts` -> `STORY_CIRCLE` object to change the narrative beats per page.
+
+---
+
+## 📜 License
 
 Apache-2.0
