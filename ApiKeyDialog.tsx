@@ -41,7 +41,7 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({ onContinue }) => {
         <div className="bg-gray-100 border-2 border-black border-dashed p-4 mb-6 text-left relative">
              <div className="absolute -top-3 left-4 bg-black text-white px-2 font-comic text-sm uppercase">Mission Briefing</div>
              <p className="font-sans text-sm text-gray-800 leading-relaxed">
-                This experience uses <strong>Gemini 2.5 Flash</strong>.
+                This experience uses <strong>Gemini 2.5 Flash</strong> for high-speed generation.
                 <br/>
                 <span className="text-xs text-gray-500">Your key is stored locally in your browser.</span>
              </p>

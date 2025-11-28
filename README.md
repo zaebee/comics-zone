@@ -21,10 +21,10 @@ Infinite Heroes allows users to upload a photo of themselves (and optionally a f
 
 ## 🤖 AI Models Used
 
-This project relies on the `@google/genai` SDK and targets the **Gemini 2.5 Flash** series for fast, efficient, and accessible generation.
+This project relies on the `@google/genai` SDK and targets the **Gemini 2.5 Flash** series for maximum performance and accessibility.
 
 *   **Text & Logic:** `gemini-2.5-flash`
-    *   Used for scriptwriting, translation, and JSON structuring.
+    *   Used for scriptwriting, complex reasoning, translation, and JSON structuring.
 *   **Visuals:** `gemini-2.5-flash-image`
     *   Used for character sheet generation and final comic panel rendering.
 
@@ -32,7 +32,7 @@ This project relies on the `@google/genai` SDK and targets the **Gemini 2.5 Flas
 
 *   **Framework:** React 19
 *   **Styling:** Tailwind CSS + Custom CSS 3D Transforms
-*   **Fonts:** 'Bangers' (Headers) and 'Comic Neue' (Body)
+*   **Fonts:** 'Bangers' (Headers), 'Neucha' (Cyrillic/Handwritten), and 'Comic Neue' (Body)
 *   **PDF Generation:** `jspdf`
 *   **AI Integration:** `@google/genai`
 
