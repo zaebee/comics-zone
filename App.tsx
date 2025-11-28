@@ -119,7 +119,8 @@ const App: React.FC = () => {
           try {
               const desc = selectedGenre === 'Custom' ? "A fitting sidekick for this story" : `Sidekick for ${selectedGenre} story.`;
               const base64 = await generateCharacterImage(apiKey, desc, MODEL_IMAGE_GEN_NAME);
-              setFriend({ base64, desc });
+              // Auto-name generated friend if blank
+              setFriend({ base64, desc, name: "The Sidekick" });
           } catch (e) { 
               // If friend gen fails, we downgrade focus to other, but don't stop the story
               console.warn("Friend generation failed, continuing without friend image.");
@@ -193,6 +194,11 @@ const App: React.FC = () => {
         alert("Please enter a custom story premise.");
         return;
     }
+    
+    // Ensure names exist
+    if (!heroRef.current.name.trim()) setHero({ ...heroRef.current, name: "The Hero" });
+    if (friendRef.current && !friendRef.current.name.trim()) setFriend({ ...friendRef.current, name: "The Sidekick" });
+
     setIsTransitioning(true);
     
     let availableTones = TONES;
@@ -235,8 +241,7 @@ const App: React.FC = () => {
       setCurrentSheetIndex(0);
       historyRef.current = [];
       generatingPages.current.clear();
-      setHero(null);
-      setFriend(null);
+      // Keep hero/friend for easy restart
   };
 
   const downloadPDF = () => {
@@ -269,11 +274,35 @@ const App: React.FC = () => {
   };
 
   const handleHeroUpload = async (file: File) => {
-       try { const base64 = await fileToBase64(file); setHero({ base64, desc: "The Main Hero" }); } catch (e) { alert("Hero upload failed"); }
+       try { 
+           const base64 = await fileToBase64(file); 
+           // Preserve existing name if replacing image
+           setHero({ base64, desc: "The Main Hero", name: heroRef.current?.name || "" }); 
+        } catch (e) { alert("Hero upload failed"); }
   };
   const handleFriendUpload = async (file: File) => {
-       try { const base64 = await fileToBase64(file); setFriend({ base64, desc: "The Sidekick/Rival" }); } catch (e) { alert("Friend upload failed"); }
+       try { 
+           const base64 = await fileToBase64(file); 
+           setFriend({ base64, desc: "The Sidekick/Rival", name: friendRef.current?.name || "" }); 
+        } catch (e) { alert("Friend upload failed"); }
   };
+
+  const handleHeroNameChange = (name: string) => {
+      // Create temp hero object if name typed before upload, or update existing
+      if (!heroRef.current) {
+          setHero({ base64: "", desc: "The Main Hero", name });
+      } else {
+          setHero({ ...heroRef.current, name });
+      }
+  };
+
+  const handleFriendNameChange = (name: string) => {
+    if (!friendRef.current) {
+        setFriend({ base64: "", desc: "The Sidekick", name });
+    } else {
+        setFriend({ ...friendRef.current, name });
+    }
+};
 
   const handleSheetClick = (index: number) => {
       if (!isStarted) return;
@@ -291,14 +320,16 @@ const App: React.FC = () => {
           isTransitioning={isTransitioning}
           uiLang={uiLang}
           setUiLang={setUiLang}
-          hero={hero}
-          friend={friend}
+          hero={hero?.base64 ? hero : null} // Only pass if base64 exists (uploaded)
+          friend={friend?.base64 ? friend : null}
           selectedGenre={selectedGenre}
           selectedLanguage={selectedLanguage}
           customPremise={customPremise}
           richMode={richMode}
           onHeroUpload={handleHeroUpload}
           onFriendUpload={handleFriendUpload}
+          onHeroNameChange={(name) => handleHeroNameChange(name)}
+          onFriendNameChange={(name) => handleFriendNameChange(name)}
           onGenreChange={setSelectedGenre}
           onLanguageChange={setSelectedLanguage}
           onPremiseChange={setCustomPremise}

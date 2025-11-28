@@ -20,6 +20,8 @@ interface SetupProps {
     richMode: boolean;
     onHeroUpload: (file: File) => void;
     onFriendUpload: (file: File) => void;
+    onHeroNameChange: (name: string) => void;
+    onFriendNameChange: (name: string) => void;
     onGenreChange: (val: string) => void;
     onLanguageChange: (val: string) => void;
     onPremiseChange: (val: string) => void;
@@ -114,6 +116,15 @@ export const Setup: React.FC<SetupProps> = (props) => {
                                 {props.hero && <span className="text-green-600 font-bold font-comic text-sm animate-pulse">{t.ready}</span>}
                             </div>
                             
+                            {/* Hero Name Input */}
+                            <input 
+                                type="text" 
+                                placeholder={t.namePlaceholder}
+                                value={props.hero?.name || ''}
+                                onChange={(e) => props.onHeroNameChange(e.target.value)}
+                                className="w-full mb-2 p-1 font-comic text-lg border-2 border-black focus:outline-none focus:bg-yellow-50 placeholder:text-gray-400"
+                            />
+
                             {props.hero ? (
                                 <div className="flex gap-3 items-center mt-1">
                                      <img src={`data:image/jpeg;base64,${props.hero.base64}`} alt="Hero Preview" className="w-20 h-20 object-cover border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,0.2)] bg-white rotate-[-2deg]" />
@@ -136,6 +147,15 @@ export const Setup: React.FC<SetupProps> = (props) => {
                                 <p className="font-comic text-lg uppercase font-bold text-purple-900">{t.coStarOptional}</p>
                                 {props.friend && <span className="text-green-600 font-bold font-comic text-sm animate-pulse">{t.ready}</span>}
                             </div>
+
+                             {/* Friend Name Input */}
+                             <input 
+                                type="text" 
+                                placeholder={t.namePlaceholder}
+                                value={props.friend?.name || ''}
+                                onChange={(e) => props.onFriendNameChange(e.target.value)}
+                                className="w-full mb-2 p-1 font-comic text-lg border-2 border-black focus:outline-none focus:bg-yellow-50 placeholder:text-gray-400"
+                            />
 
                             {props.friend ? (
                                 <div className="flex gap-3 items-center mt-1">

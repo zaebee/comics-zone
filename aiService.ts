@@ -1,4 +1,3 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -37,6 +36,62 @@ const BEAT_SCHEMA: Schema = {
   required: ["caption", "scene", "focus_char", "choices"]
 };
 
+// --- CAMPBELL / PROPP NARRATIVE CIRCLE ---
+// Maps page numbers to Hero's Journey (Campbell) and Propp Functions
+const STORY_CIRCLE: Record<number, { campbell: string, propp: string, instruction: string }> = {
+    1: {
+        campbell: "Ordinary World",
+        propp: "Initial Situation / Absentation",
+        instruction: "Establish the status quo. Show [HERO] in their element, but establish a LACK or desire. What is missing in their life?"
+    },
+    2: {
+        campbell: "Call to Adventure",
+        propp: "Villainy / Mediation",
+        instruction: "INCITING INCIDENT. An external event, villain, or message disrupts the Ordinary World. [HERO] is faced with a problem."
+    },
+    3: {
+        campbell: "Refusal / Crossing the Threshold",
+        propp: "Decision to Counteract / Departure",
+        instruction: "DECISION POINT. [HERO] must choose how to react to the threat. They leave the comfort zone."
+    },
+    4: {
+        campbell: "Tests, Allies, Enemies",
+        propp: "First Function of Donor / Acquisition of Agent",
+        instruction: "Enter the Special World. [HERO] meets an ally (or Co-Star) or finds a tool/clue. The stakes become real."
+    },
+    5: {
+        campbell: "Approach to the Inmost Cave",
+        propp: "Guidance / Spatial Transference",
+        instruction: "Tension rises. [HERO] gets closer to the source of the problem. A plan is formed."
+    },
+    6: {
+        campbell: "The Ordeal (Midpoint)",
+        propp: "Struggle",
+        instruction: "Direct confrontation. Everything goes wrong. [HERO] faces a major setback or physical danger."
+    },
+    7: {
+        campbell: "The Reward (Seizing the Sword)",
+        propp: "Victory / Branding",
+        instruction: "[HERO] survives the ordeal and gains insight, a key item, or a small victory. But the danger isn't over."
+    },
+    8: {
+        campbell: "The Road Back",
+        propp: "Pursuit",
+        instruction: "The consequences of the Ordeal. The antagonist pushes back hard. A chase or ticking clock begins."
+    },
+    9: {
+        campbell: "Resurrection",
+        propp: "Transfiguration / Difficult Task",
+        instruction: "The final test. [HERO] must use what they learned to overcome the ultimate challenge. They are changed."
+    },
+    10: {
+        campbell: "Return with the Elixir",
+        propp: "Wedding / Status Quo Restored",
+        instruction: "Resolution. [HERO] returns to a new normal, changed by the journey. CLIFFHANGER allowed."
+    }
+};
+
+
 // --- CLIENT HELPER ---
 const getClient = (apiKey: string) => new GoogleGenAI({ apiKey });
 
@@ -64,6 +119,10 @@ export const generateStoryBeat = async (
     const isFinalPage = pageNum === MAX_STORY_PAGES;
     const langName = LANGUAGES.find(l => l.code === selectedLanguage)?.name || "English";
 
+    // Names
+    const heroName = hero?.name || "The Hero";
+    const friendName = friend?.name || "The Sidekick";
+
     // Filter relevant history for context
     const relevantHistory = history
         .filter(p => p.type === 'story' && p.narrative && (p.pageIndex || 0) < pageNum)
@@ -76,60 +135,57 @@ export const generateStoryBeat = async (
       `[Page ${p.pageIndex}] [Focus: ${p.narrative?.focus_char}] (Caption: "${p.narrative?.caption || ''}") (Dialogue: "${p.narrative?.dialogue || ''}") (Scene: ${p.narrative?.scene}) ${p.resolvedChoice ? `-> USER CHOICE: "${p.resolvedChoice}"` : ''}`
     ).join('\n');
 
-    // Logic: Co-Star Injection
-    let friendInstruction = "Not yet introduced.";
-    if (friend) {
-        friendInstruction = "ACTIVE and PRESENT (User Provided).";
-        if (lastFocus !== 'friend' && Math.random() > 0.4) {
-             friendInstruction += " MANDATORY: FOCUS ON THE CO-STAR FOR THIS PANEL.";
-        } else {
-             friendInstruction += " Ensure they are woven into the scene.";
-        }
-    }
-
     // Logic: Story Driver
     let coreDriver = `GENRE: ${selectedGenre}. TONE: ${storyTone}.`;
     if (selectedGenre === 'Custom') {
         coreDriver = `STORY PREMISE: ${customPremise || "A totally unique, unpredictable adventure"}.`;
     }
 
-    // Logic: Guardrails
+    // Logic: Structure Lookup
+    const structure = STORY_CIRCLE[pageNum] || { campbell: "Unknown", propp: "Unknown", instruction: "Continue the story." };
+    let instruction = `PHASE: ${structure.campbell}. PROPP FUNCTION: ${structure.propp}. INSTRUCTION: ${structure.instruction.replace('[HERO]', heroName)}`;
+
+    // Logic: Co-Star Injection
+    let friendInstruction = `Name: ${friendName}. Status: Not yet introduced.`;
+    if (friend) {
+        friendInstruction = `Name: ${friendName}. Status: ACTIVE and PRESENT.`;
+        if (pageNum >= 4) {
+             friendInstruction += " Ensure they are woven into the scene dynamics.";
+        }
+    }
+
     const guardrails = `
     NEGATIVE CONSTRAINTS:
-    1. UNLESS GENRE IS Sci-Fi/Superhero/Custom: DO NOT use technical jargon like "Quantum", "Timeline".
-    2. IF GENRE IS Teen Drama/Comedy: Stakes must be SOCIAL/EMOTIONAL, not life-or-death.
-    3. Avoid "The artifact" unless established.
+    1. IF GENRE IS Teen Drama/Comedy: Stakes must be SOCIAL/EMOTIONAL, not life-or-death.
+    2. IMPORTANT: Use the names "${heroName}" and "${friendName}" in the dialogue/captions. 
+    3. HOWEVER, for the 'scene' field, you MUST use the tokens 'HERO' and 'CO-STAR' so the image generator knows who to draw.
+       Example Scene: "HERO stands on a cliff while CO-STAR looks at a map."
+       Example Dialogue: "${heroName}: Look at that view, ${friendName}!"
     `;
 
-    let instruction = `Continue the story. OUTPUT TEXT MUST BE IN ${langName.toUpperCase()}. ${coreDriver} ${guardrails}`;
     if (richMode) instruction += " RICH MODE: Prioritize deeper thoughts and descriptive captions.";
 
     if (isFinalPage) {
-        instruction += " FINAL PAGE. KARMIC CLIFFHANGER. Reference the user's early choices. Text must end with 'TO BE CONTINUED...'.";
+        instruction += " FINAL PAGE. Text must end with 'TO BE CONTINUED...'.";
     } else if (isDecisionPage) {
         instruction += " End with a PSYCHOLOGICAL choice (Values/Risks), not just 'Go Left/Right'.";
-    } else {
-        if (pageNum === 1) instruction += " INCITING INCIDENT. Disrupt the status quo.";
-        else if (pageNum <= 4) instruction += " RISING ACTION. Focus on character dynamics.";
-        else if (pageNum <= 8) instruction += " COMPLICATION. A twist or blocked path.";
-        else instruction += " CLIMAX. The main confrontation.";
     }
-
-    const capLimit = richMode ? "max 35 words" : "max 15 words";
-    const diaLimit = richMode ? "max 30 words" : "max 12 words";
 
     const prompt = `
     You are writing a comic book script. PAGE ${pageNum} of ${MAX_STORY_PAGES}.
     TARGET LANGUAGE: ${langName}.
     
     CHARACTERS:
-    - HERO: Active.
-    - CO-STAR: ${friendInstruction}
+    - HERO NAME: ${heroName}
+    - CO-STAR NAME: ${friendInstruction}
 
     PREVIOUS PANELS:
     ${historyText.length > 0 ? historyText : "Start the adventure."}
 
-    INSTRUCTION: ${instruction}
+    NARRATIVE GOAL: ${instruction}
+    
+    ${coreDriver} 
+    ${guardrails}
     
     Generate the next panel beat.
     `;
@@ -218,6 +274,7 @@ export const generatePanelImage = async (
     } else if (type === 'back_cover') {
         promptText += `TYPE: Comic Back Cover. FULL PAGE VERTICAL ART. Dramatic teaser. Text: "NEXT ISSUE SOON".`;
     } else {
+        // We instruct the model to look for the tokens 'HERO' and 'CO-STAR' in the beat.scene
         promptText += `TYPE: Vertical comic panel. SCENE: ${beat.scene}. `;
         promptText += `INSTRUCTIONS: Maintain strict character likeness. If scene mentions 'HERO', use REFERENCE 1. If scene mentions 'CO-STAR', use REFERENCE 2. `;
         promptText += `IMPORTANT: DO NOT DRAW SPEECH BUBBLES OR CAPTION BOXES. GENERATE A CLEAN ILLUSTRATION ONLY.`;

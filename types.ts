@@ -64,4 +64,5 @@ export interface Beat {
 export interface Persona {
   base64: string;
   desc: string;
+  name: string;
 }
