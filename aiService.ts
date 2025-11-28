@@ -41,8 +41,8 @@ const BEAT_SCHEMA: Schema = {
 const STORY_CIRCLE: Record<number, { campbell: string, propp: string, instruction: string }> = {
     1: {
         campbell: "Ordinary World",
-        propp: "Initial Situation / Absentation",
-        instruction: "Establish the status quo. Show [HERO] in their element, but establish a LACK or desire. What is missing in their life?"
+        propp: "Initial Situation",
+        instruction: "Introduce [HERO] in a specific setting. Show them doing something characteristic. Establish a mood, not just a location. NO 'Once upon a time'."
     },
     2: {
         campbell: "Call to Adventure",
@@ -52,22 +52,22 @@ const STORY_CIRCLE: Record<number, { campbell: string, propp: string, instructio
     3: {
         campbell: "Refusal / Crossing the Threshold",
         propp: "Decision to Counteract / Departure",
-        instruction: "DECISION POINT. [HERO] must choose how to react to the threat. They leave the comfort zone."
+        instruction: "DECISION POINT. [HERO] must choose how to react to the threat. They leave the comfort zone. Define the stakes."
     },
     4: {
         campbell: "Tests, Allies, Enemies",
         propp: "First Function of Donor / Acquisition of Agent",
-        instruction: "Enter the Special World. [HERO] meets an ally (or Co-Star) or finds a tool/clue. The stakes become real."
+        instruction: "Enter the Special World. [HERO] meets an ally (or Co-Star) or finds a tool/clue. The stakes become real. Show interaction."
     },
     5: {
         campbell: "Approach to the Inmost Cave",
         propp: "Guidance / Spatial Transference",
-        instruction: "Tension rises. [HERO] gets closer to the source of the problem. A plan is formed."
+        instruction: "Tension rises. [HERO] gets closer to the source of the problem. A plan is formed. Show preparation or stealth."
     },
     6: {
         campbell: "The Ordeal (Midpoint)",
         propp: "Struggle",
-        instruction: "Direct confrontation. Everything goes wrong. [HERO] faces a major setback or physical danger."
+        instruction: "Direct confrontation. Everything goes wrong. [HERO] faces a major setback or physical danger. High action."
     },
     7: {
         campbell: "The Reward (Seizing the Sword)",
@@ -77,7 +77,7 @@ const STORY_CIRCLE: Record<number, { campbell: string, propp: string, instructio
     8: {
         campbell: "The Road Back",
         propp: "Pursuit",
-        instruction: "The consequences of the Ordeal. The antagonist pushes back hard. A chase or ticking clock begins."
+        instruction: "The consequences of the Ordeal. The antagonist pushes back hard. A chase or ticking clock begins. Fast pace."
     },
     9: {
         campbell: "Resurrection",
@@ -87,13 +87,24 @@ const STORY_CIRCLE: Record<number, { campbell: string, propp: string, instructio
     10: {
         campbell: "Return with the Elixir",
         propp: "Wedding / Status Quo Restored",
-        instruction: "Resolution. [HERO] returns to a new normal, changed by the journey. CLIFFHANGER allowed."
+        instruction: "Resolution. [HERO] returns to a new normal, changed by the journey. CLIFFHANGER allowed for the next issue."
     }
 };
 
 
 // --- CLIENT HELPER ---
 const getClient = (apiKey: string) => new GoogleGenAI({ apiKey });
+
+// Helper to strip markdown code blocks if present
+const cleanJson = (text: string): string => {
+  let cleaned = text.trim();
+  if (cleaned.startsWith('```json')) {
+    cleaned = cleaned.replace(/^```json/, '').replace(/```$/, '');
+  } else if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```/, '').replace(/```$/, '');
+  }
+  return cleaned;
+};
 
 // --- API FUNCTIONS ---
 
@@ -128,9 +139,6 @@ export const generateStoryBeat = async (
         .filter(p => p.type === 'story' && p.narrative && (p.pageIndex || 0) < pageNum)
         .sort((a, b) => (a.pageIndex || 0) - (b.pageIndex || 0));
 
-    const lastBeat = relevantHistory[relevantHistory.length - 1]?.narrative;
-    const lastFocus = lastBeat?.focus_char || 'none';
-
     const historyText = relevantHistory.map(p => 
       `[Page ${p.pageIndex}] [Focus: ${p.narrative?.focus_char}] (Caption: "${p.narrative?.caption || ''}") (Dialogue: "${p.narrative?.dialogue || ''}") (Scene: ${p.narrative?.scene}) ${p.resolvedChoice ? `-> USER CHOICE: "${p.resolvedChoice}"` : ''}`
     ).join('\n');
@@ -156,20 +164,25 @@ export const generateStoryBeat = async (
 
     const guardrails = `
     NEGATIVE CONSTRAINTS:
-    1. IF GENRE IS Teen Drama/Comedy: Stakes must be SOCIAL/EMOTIONAL, not life-or-death.
-    2. IMPORTANT: Use the names "${heroName}" and "${friendName}" in the dialogue/captions. 
-    3. HOWEVER, for the 'scene' field, you MUST use the tokens 'HERO' and 'CO-STAR' so the image generator knows who to draw.
+    1. NEVER write "To be continued" in the caption unless it is Page 10.
+    2. NEVER leave caption/dialogue empty if the scene implies speaking.
+    3. Avoid generic summaries like "The adventure begins" or "The journey continues". Use specific details and action verbs.
+    4. IMPORTANT: Use the names "${heroName}" and "${friendName}" in the dialogue/captions. 
+    5. HOWEVER, for the 'scene' field, you MUST use the tokens 'HERO' and 'CO-STAR' so the image generator knows who to draw.
        Example Scene: "HERO stands on a cliff while CO-STAR looks at a map."
        Example Dialogue: "${heroName}: Look at that view, ${friendName}!"
     `;
 
-    if (richMode) instruction += " RICH MODE: Prioritize deeper thoughts and descriptive captions.";
+    if (richMode) instruction += " RICH MODE: Prioritize deeper thoughts, longer narrative captions, and emotional nuance.";
 
     if (isFinalPage) {
         instruction += " FINAL PAGE. Text must end with 'TO BE CONTINUED...'.";
     } else if (isDecisionPage) {
         instruction += " End with a PSYCHOLOGICAL choice (Values/Risks), not just 'Go Left/Right'.";
     }
+
+    const systemInstruction = `You are a legendary comic book writer. You excel at visual storytelling, punchy dialogue, and driving the plot forward with high stakes.
+    You always return valid JSON. You never produce generic text. You show, don't tell.`;
 
     const prompt = `
     You are writing a comic book script. PAGE ${pageNum} of ${MAX_STORY_PAGES}.
@@ -180,14 +193,14 @@ export const generateStoryBeat = async (
     - CO-STAR NAME: ${friendInstruction}
 
     PREVIOUS PANELS:
-    ${historyText.length > 0 ? historyText : "Start the adventure."}
+    ${historyText.length > 0 ? historyText : "PAGE 1 START. Establish the world immediately."}
 
     NARRATIVE GOAL: ${instruction}
     
     ${coreDriver} 
     ${guardrails}
     
-    Generate the next panel beat.
+    Generate the next panel beat in strictly VALID JSON format matching the schema.
     `;
 
     try {
@@ -196,13 +209,15 @@ export const generateStoryBeat = async (
             contents: prompt, 
             config: { 
                 responseMimeType: 'application/json',
-                responseSchema: BEAT_SCHEMA 
+                responseSchema: BEAT_SCHEMA,
+                systemInstruction: systemInstruction
             } 
         });
         
-        const rawText = res.text;
-        if (!rawText) throw new Error("No text returned from model");
-        
+        let rawText = res.text || "{}";
+        // CRITICAL FIX: Clean Markdown blocks that might break JSON parsing
+        rawText = cleanJson(rawText);
+
         const parsed = JSON.parse(rawText) as Beat;
 
         // Post-processing defaults
@@ -213,10 +228,10 @@ export const generateStoryBeat = async (
         return parsed;
     } catch (e) {
         console.error("Beat generation failed", e);
-        // Fallback beat
+        // Improved Fallback beat to avoid "The story continues..." loop
         return { 
-            caption: "The story continues...", 
-            scene: `Generic scene for page ${pageNum}.`, 
+            caption: "Visual feed interrupted... Re-establishing narrative link...", 
+            scene: `A static-filled scene with the silhouette of ${heroName} visible.`, 
             focus_char: 'hero', 
             choices: [] 
         };

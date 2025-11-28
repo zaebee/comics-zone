@@ -1,11 +1,10 @@
 
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ComicFace, INITIAL_PAGES, GATE_PAGE, UiLanguage } from './types';
 import { LoadingFX } from './LoadingFX';
 import { TRANSLATIONS } from './translations';
@@ -25,6 +24,19 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, onChoice, 
     const t = TRANSLATIONS[uiLang];
     const [linkCopied, setLinkCopied] = useState(false);
 
+    // Randomize the animation style for this specific panel instance so it stays consistent
+    const animationClass = useMemo(() => {
+        if (!face || face.type === 'cover' || face.type === 'back_cover') return '';
+        const anims = [
+            'animate-ken-burns-in', 
+            'animate-ken-burns-out', 
+            'animate-pan-right', 
+            'animate-pan-left'
+        ];
+        // Use a pseudo-random pick based on ID or just random if ID is stable
+        return anims[Math.floor(Math.random() * anims.length)];
+    }, [face?.id]);
+
     if (!face) return <div className="w-full h-full bg-gray-950" />;
     if (face.isLoading && !face.imageUrl) return <LoadingFX uiLang={uiLang} />;
     
@@ -43,17 +55,49 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, onChoice, 
     }
 
     return (
-        <div className={`panel-container relative group ${isFullBleed ? '!p-0 !bg-[#0a0a0a]' : ''}`}>
+        <div className={`panel-container relative group overflow-hidden ${isFullBleed ? '!p-0 !bg-[#0a0a0a]' : ''}`}>
+             <style>{`
+                @keyframes kenBurnsIn { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+                @keyframes kenBurnsOut { 0% { transform: scale(1.1); } 100% { transform: scale(1); } }
+                @keyframes panRight { 0% { transform: translateX(0) scale(1.05); } 100% { transform: translateX(-2%) scale(1.05); } }
+                @keyframes panLeft { 0% { transform: translateX(0) scale(1.05); } 100% { transform: translateX(2%) scale(1.05); } }
+                
+                @keyframes popIn { 
+                    0% { transform: scale(0); opacity: 0; } 
+                    60% { transform: scale(1.1); opacity: 1; } 
+                    100% { transform: scale(1); opacity: 1; } 
+                }
+                @keyframes slideDownFade { 
+                    0% { transform: translateY(-20px); opacity: 0; } 
+                    100% { transform: translateY(0); opacity: 1; } 
+                }
+
+                .animate-ken-burns-in { animation: kenBurnsIn 15s ease-out forwards; }
+                .animate-ken-burns-out { animation: kenBurnsOut 15s ease-out forwards; }
+                .animate-pan-right { animation: panRight 15s ease-in-out alternate infinite; }
+                .animate-pan-left { animation: panLeft 15s ease-in-out alternate infinite; }
+                
+                .animate-pop-in { animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+                .animate-slide-down { animation: slideDownFade 0.8s ease-out forwards; }
+            `}</style>
+
             <div className="gloss"></div>
-            {face.imageUrl && <img src={face.imageUrl} alt="Comic panel" className={`panel-image ${isFullBleed ? '!object-cover' : ''}`} />}
+            {face.imageUrl && (
+                <img 
+                    src={face.imageUrl} 
+                    alt="Comic panel" 
+                    className={`panel-image ${isFullBleed ? '!object-cover' : ''} ${animationClass}`} 
+                    style={{ transformOrigin: 'center center', willChange: 'transform' }}
+                />
+            )}
             
             {/* --- HTML TEXT OVERLAYS --- */}
             {face.type === 'story' && face.narrative && !face.isLoading && (
                <>
                   {/* Narrative Caption */}
                   {face.narrative.caption && (
-                      <div className="absolute top-3 left-3 right-12 z-10 pointer-events-none">
-                          <div className="bg-yellow-200 border-2 border-black p-2 shadow-[3px_3px_0px_rgba(0,0,0,0.5)] inline-block max-w-full">
+                      <div className="absolute top-3 left-3 right-12 z-10 pointer-events-none animate-slide-down" style={{animationDelay: '0.3s'}}>
+                          <div className="bg-yellow-200 border-2 border-black p-2 shadow-[3px_3px_0px_rgba(0,0,0,0.5)] inline-block max-w-full transform rotate-[-1deg]">
                               <p className="font-comic text-black text-sm md:text-base leading-tight">
                                   {face.narrative.caption}
                               </p>
@@ -63,8 +107,8 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, onChoice, 
 
                   {/* Speech Bubble */}
                   {face.narrative.dialogue && (
-                      <div className="absolute bottom-16 right-3 max-w-[85%] z-10 pointer-events-none flex justify-end">
-                           <div className="relative bg-white border-2 border-black rounded-[20px] rounded-br-none p-3 shadow-[4px_4px_0px_rgba(0,0,0,0.3)]">
+                      <div className="absolute bottom-16 right-3 max-w-[85%] z-10 pointer-events-none flex justify-end animate-pop-in" style={{animationDelay: '0.8s'}}>
+                           <div className="relative bg-white border-2 border-black rounded-[20px] rounded-br-none p-3 shadow-[4px_4px_0px_rgba(0,0,0,0.3)] transform rotate-[1deg]">
                                <p className="font-comic text-black text-lg md:text-xl leading-snug">
                                    {face.narrative.dialogue}
                                </p>
@@ -103,6 +147,7 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, onChoice, 
                                     if(face.pageIndex && !face.selectedChoice) onChoice(face.pageIndex, choice); 
                                 }}
                                 className={`comic-btn w-full py-3 text-xl font-bold tracking-wider transition-all duration-300 ${stateClasses}`}
+                                style={{ animationDelay: `${1.5 + (i * 0.2)}s` }} // Delay button appearance slightly
                             >
                                 {choice}
                             </button>
