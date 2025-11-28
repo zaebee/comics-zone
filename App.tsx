@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -5,7 +6,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import jsPDF from 'jspdf';
-import { MAX_STORY_PAGES, BACK_COVER_PAGE, TOTAL_PAGES, INITIAL_PAGES, BATCH_SIZE, DECISION_PAGES, GENRES, TONES, LANGUAGES, ComicFace, Beat, Persona, UiLanguage } from './types';
+import { MAX_STORY_PAGES, BACK_COVER_PAGE, TOTAL_PAGES, INITIAL_PAGES, BATCH_SIZE, DECISION_PAGES, GENRES, TONES, LANGUAGES, ComicFace, Beat, Persona, UiLanguage, SavedState } from './types';
 import { Setup } from './Setup';
 import { Book } from './Book';
 import { useApiKey } from './useApiKey';
@@ -16,6 +17,7 @@ import { generateStoryBeat, generateCharacterImage, generatePanelImage } from '.
 // Switched to 2.5 Flash series for broader API key compatibility and speed
 const MODEL_TEXT_NAME = "gemini-2.5-flash";
 const MODEL_IMAGE_GEN_NAME = "gemini-2.5-flash-image";
+const SAVE_KEY = "infinite_heroes_save_v1";
 
 const App: React.FC = () => {
   // --- API Key Hook ---
@@ -55,6 +57,59 @@ const App: React.FC = () => {
 
   const generatingPages = useRef(new Set<number>());
   const historyRef = useRef<ComicFace[]>([]);
+
+  // --- Auto-Save ---
+  useEffect(() => {
+    if (isStarted && comicFaces.length > 0) {
+        try {
+            const stateToSave: SavedState = {
+                hero: heroRef.current,
+                friend: friendRef.current,
+                selectedGenre,
+                selectedLanguage,
+                customPremise,
+                storyTone,
+                richMode,
+                comicFaces,
+                currentSheetIndex,
+                isStarted: true
+            };
+            localStorage.setItem(SAVE_KEY, JSON.stringify(stateToSave));
+        } catch (e) {
+            console.error("Failed to save progress to local storage", e);
+        }
+    }
+  }, [comicFaces, currentSheetIndex, isStarted, selectedGenre, selectedLanguage, customPremise, storyTone, richMode]);
+
+  const loadFromSave = () => {
+      try {
+          const raw = localStorage.getItem(SAVE_KEY);
+          if (!raw) return;
+          const data = JSON.parse(raw) as SavedState;
+          
+          setHero(data.hero);
+          setFriend(data.friend);
+          setSelectedGenre(data.selectedGenre);
+          setSelectedLanguage(data.selectedLanguage);
+          setCustomPremise(data.customPremise);
+          setStoryTone(data.storyTone);
+          setRichMode(data.richMode);
+          setComicFaces(data.comicFaces);
+          setCurrentSheetIndex(data.currentSheetIndex);
+          setIsStarted(true);
+          
+          // Sync Refs
+          heroRef.current = data.hero;
+          friendRef.current = data.friend;
+          // Reconstruct historyRef from comicFaces
+          historyRef.current = [...data.comicFaces];
+          
+          setShowSetup(false);
+      } catch (e) {
+          console.error("Failed to load save", e);
+          alert("Could not load saved comic. Data might be corrupted.");
+      }
+  };
 
   // --- Helpers ---
   const handleAPIError = (e: any) => {
@@ -199,6 +254,9 @@ const App: React.FC = () => {
     if (!heroRef.current.name.trim()) setHero({ ...heroRef.current, name: "The Hero" });
     if (friendRef.current && !friendRef.current.name.trim()) setFriend({ ...friendRef.current, name: "The Sidekick" });
 
+    // Clear previous save on new launch
+    localStorage.removeItem(SAVE_KEY);
+
     setIsTransitioning(true);
     
     let availableTones = TONES;
@@ -335,6 +393,7 @@ const App: React.FC = () => {
           onPremiseChange={setCustomPremise}
           onRichModeChange={setRichMode}
           onLaunch={launchStory}
+          onLoadSave={loadFromSave}
       />
       
       <Book 

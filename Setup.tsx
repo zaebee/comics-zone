@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -27,6 +28,7 @@ interface SetupProps {
     onPremiseChange: (val: string) => void;
     onRichModeChange: (val: boolean) => void;
     onLaunch: () => void;
+    onLoadSave: () => void;
 }
 
 const Footer: React.FC<{uiLang: UiLanguage}> = ({uiLang}) => {
@@ -57,6 +59,12 @@ const Footer: React.FC<{uiLang: UiLanguage}> = ({uiLang}) => {
 
 export const Setup: React.FC<SetupProps> = (props) => {
     const t = TRANSLATIONS[props.uiLang];
+    const [hasSave, setHasSave] = useState(false);
+
+    useEffect(() => {
+        const save = localStorage.getItem('infinite_heroes_save_v1');
+        if (save) setHasSave(true);
+    }, [props.show]);
     
     if (!props.show && !props.isTransitioning) return null;
 
@@ -215,9 +223,17 @@ export const Setup: React.FC<SetupProps> = (props) => {
                     </div>
                 </div>
 
-                <button onClick={props.onLaunch} disabled={!props.hero || props.isTransitioning} className="comic-btn bg-red-600 text-white text-3xl px-6 py-3 w-full hover:bg-red-500 disabled:bg-gray-400 disabled:cursor-not-allowed uppercase tracking-wider">
-                    {props.isTransitioning ? t.launching : t.launchBtn}
-                </button>
+                <div className="flex gap-2">
+                    <button onClick={props.onLaunch} disabled={!props.hero || props.isTransitioning} className="comic-btn bg-red-600 text-white text-3xl px-6 py-3 flex-1 hover:bg-red-500 disabled:bg-gray-400 disabled:cursor-not-allowed uppercase tracking-wider">
+                        {props.isTransitioning ? t.launching : t.launchBtn}
+                    </button>
+                    {hasSave && (
+                        <button onClick={props.onLoadSave} disabled={props.isTransitioning} className="comic-btn bg-yellow-400 text-black text-lg px-4 py-3 hover:bg-yellow-300 disabled:bg-gray-400 uppercase leading-none flex flex-col items-center justify-center min-w-[120px]">
+                            <span className="text-xs font-bold opacity-60">{t.saveFound}</span>
+                            {t.resumeBtn}
+                        </button>
+                    )}
+                </div>
             </div>
           </div>
         </div>

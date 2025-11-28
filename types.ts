@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -65,4 +66,17 @@ export interface Persona {
   base64: string;
   desc: string;
   name: string;
+}
+
+export interface SavedState {
+  hero: Persona | null;
+  friend: Persona | null;
+  selectedGenre: string;
+  selectedLanguage: string;
+  customPremise: string;
+  storyTone: string;
+  richMode: boolean;
+  comicFaces: ComicFace[];
+  currentSheetIndex: number;
+  isStarted: boolean;
 }

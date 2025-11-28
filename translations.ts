@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -33,6 +34,8 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         premisePlaceholder: "Enter your story premise...",
         novelMode: "NOVEL MODE (Rich Dialogue)",
         launchBtn: "START ADVENTURE!",
+        resumeBtn: "RESUME PREVIOUS ISSUE",
+        saveFound: "SAVE FOUND",
         launching: "LAUNCHING...",
         remixIdea: "REMIX IDEA:",
         builtWith: "Build with Gemini",
@@ -73,6 +76,8 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         premisePlaceholder: "Введите завязку сюжета...",
         novelMode: "РЕЖИМ РОМАНА (Больше текста)",
         launchBtn: "НАЧАТЬ ПРИКЛЮЧЕНИЕ!",
+        resumeBtn: "ПРОДОЛЖИТЬ ВЫПУСК",
+        saveFound: "НАЙДЕНО СОХРАНЕНИЕ",
         launching: "ЗАПУСК...",
         remixIdea: "ИДЕЯ ДЛЯ РЕМИКСА:",
         builtWith: "Сделано с Gemini",
