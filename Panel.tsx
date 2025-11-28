@@ -21,9 +21,10 @@ interface PanelProps {
     onShare?: () => string; 
     onNextIssue?: () => void;
     isGeneratingNextIssue?: boolean;
+    staticMode?: boolean; // New prop for PDF generation
 }
 
-export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProgress, onChoice, onOpenBook, onDownload, onReset, onShare, onNextIssue, isGeneratingNextIssue }) => {
+export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProgress, onChoice, onOpenBook, onDownload, onReset, onShare, onNextIssue, isGeneratingNextIssue, staticMode = false }) => {
     const t = TRANSLATIONS[uiLang];
     const [linkCopied, setLinkCopied] = useState(false);
     const [imgError, setImgError] = useState(false);
@@ -37,6 +38,7 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
     }, [face?.imageUrl]);
 
     const animationClass = useMemo(() => {
+        if (staticMode) return ''; // No animations in static mode
         if (!face || face.type === 'cover' || face.type === 'back_cover') return '';
         const anims = [
             'animate-ken-burns-in', 
@@ -45,9 +47,10 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
             'animate-pan-left'
         ];
         return anims[Math.floor(Math.random() * anims.length)];
-    }, [face?.id]);
+    }, [face?.id, staticMode]);
 
     const handleMouseMove = (e: React.MouseEvent) => {
+        if (staticMode) return;
         const rect = e.currentTarget.getBoundingClientRect();
         // Calculate normalized position (-1 to 1)
         const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
@@ -77,6 +80,10 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
         }
     }
 
+    // In static mode, always show text and force parallax to 0
+    const isTextVisible = staticMode ? true : !hideText;
+    const currentMousePos = staticMode ? { x: 0, y: 0 } : mousePos;
+
     return (
         <div 
             className={`panel-container relative group overflow-hidden ${isFullBleed ? '!p-0 !bg-[#0a0a0a]' : ''}`}
@@ -90,8 +97,8 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
                 <div 
                     className="w-full h-full overflow-hidden" 
                     style={{ 
-                        transform: `translate(${mousePos.x * -10}px, ${mousePos.y * -10}px)`,
-                        transition: 'transform 0.1s ease-out'
+                        transform: `translate(${currentMousePos.x * -10}px, ${currentMousePos.y * -10}px)`,
+                        transition: staticMode ? 'none' : 'transform 0.1s ease-out'
                     }}
                 >
                     <img 
@@ -113,8 +120,8 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
                  </div>
             ) : null}
             
-            {/* --- TEXT VISIBILITY TOGGLE --- */}
-            {face.type === 'story' && face.imageUrl && (
+            {/* --- TEXT VISIBILITY TOGGLE (Hidden in Static Mode) --- */}
+            {!staticMode && face.type === 'story' && face.imageUrl && (
                 <button 
                     onClick={(e) => { e.stopPropagation(); setHideText(!hideText); }}
                     className="absolute top-2 right-2 z-30 bg-black/50 hover:bg-black text-white p-1 rounded-full opacity-50 hover:opacity-100 transition-opacity"
@@ -132,22 +139,23 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
 
             {/* --- TEXT OVERLAY LAYER (Parallax Front) --- */}
             <div 
-                className={`absolute inset-0 pointer-events-none z-10 transition-opacity duration-300 ${hideText ? 'opacity-0' : 'opacity-100'}`}
+                className={`absolute inset-0 pointer-events-none z-10 transition-opacity duration-300 ${isTextVisible ? 'opacity-100' : 'opacity-0'}`}
                 style={{ 
-                    transform: `translate(${mousePos.x * 5}px, ${mousePos.y * 5}px)`,
-                    transition: 'transform 0.1s ease-out, opacity 0.3s ease'
+                    transform: `translate(${currentMousePos.x * 5}px, ${currentMousePos.y * 5}px)`,
+                    transition: staticMode ? 'none' : 'transform 0.1s ease-out, opacity 0.3s ease'
                 }}
             >
                 {face.type === 'story' && face.narrative && !face.isLoading && (
                 <>
                     {/* Narrative Caption */}
                     {face.narrative.caption && (
-                        <div className="absolute top-0 left-0 right-0 p-3 animate-slide-down" style={{animationDelay: '0.3s'}}>
+                        <div className={`absolute top-0 left-0 right-0 p-3 ${staticMode ? '' : 'animate-slide-down'}`} style={{animationDelay: staticMode ? '0s' : '0.3s'}}>
                             <div className="flex justify-start">
                                 <div className="bg-yellow-200 border-2 border-black p-2 shadow-[2px_2px_0px_rgba(0,0,0,0.5)] max-w-[95%] transform rotate-[-0.5deg]">
-                                    <div className="caption-scroll max-h-[120px] overflow-y-auto pr-1">
+                                    <div className={`caption-scroll ${staticMode ? 'h-auto overflow-visible' : 'max-h-[120px] overflow-y-auto'} pr-1`}>
                                         <p className="font-comic text-black text-sm md:text-base leading-tight font-bold tracking-wide">
-                                            <Typewriter text={face.narrative.caption} delay={500} />
+                                            {/* In static mode, show full text immediately */}
+                                            {staticMode ? face.narrative.caption : <Typewriter text={face.narrative.caption} delay={500} />}
                                         </p>
                                     </div>
                                 </div>
@@ -157,10 +165,10 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
 
                     {/* Speech Bubble */}
                     {face.narrative.dialogue && (
-                        <div className="absolute bottom-16 right-3 max-w-[85%] flex justify-end animate-pop-in" style={{animationDelay: '0.8s'}}>
-                            <div className="relative bg-white border-2 border-black rounded-[20px] rounded-br-none p-3 shadow-[4px_4px_0px_rgba(0,0,0,0.3)] transform rotate-[1deg] animate-float">
+                        <div className={`absolute bottom-16 right-3 max-w-[85%] flex justify-end ${staticMode ? '' : 'animate-pop-in'}`} style={{animationDelay: staticMode ? '0s' : '0.8s'}}>
+                            <div className={`relative bg-white border-2 border-black rounded-[20px] rounded-br-none p-3 shadow-[4px_4px_0px_rgba(0,0,0,0.3)] transform rotate-[1deg] ${staticMode ? '' : 'animate-float'}`}>
                                 <p className="font-comic text-black text-lg md:text-xl leading-snug">
-                                    <Typewriter text={face.narrative.dialogue} delay={1000} />
+                                     {staticMode ? face.narrative.dialogue : <Typewriter text={face.narrative.dialogue} delay={1000} />}
                                 </p>
                                 <div className="absolute -bottom-[10px] right-0 w-0 h-0 border-l-[10px] border-l-transparent border-r-[0px] border-r-transparent border-t-[12px] border-t-black"></div>
                                 <div className="absolute -bottom-[6px] right-[2px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[0px] border-r-transparent border-t-[9px] border-t-white"></div>
@@ -171,8 +179,8 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
                 )}
             </div>
 
-            {/* Decision Buttons */}
-            {face.isDecisionPage && face.choices.length > 0 && (
+            {/* Decision Buttons (Hidden in Static Mode for cleanliness, or shown inactive) */}
+            {!staticMode && face.isDecisionPage && face.choices.length > 0 && (
                 <div className={`absolute bottom-0 inset-x-0 p-6 pb-12 flex flex-col gap-3 items-center justify-end transition-opacity duration-500 ${face.resolvedChoice ? 'opacity-0 pointer-events-none' : 'opacity-100'} bg-gradient-to-t from-black/90 via-black/50 to-transparent z-20`}>
                     <p className={`text-white font-comic text-2xl uppercase tracking-widest ${face.selectedChoice ? 'opacity-0' : 'animate-pulse'}`}>{t.whatDrivesYou}</p>
                     {face.choices.map((choice, i) => {
@@ -207,8 +215,8 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
                 </div>
             )}
 
-            {/* Cover Action */}
-            {face.type === 'cover' && (
+            {/* Cover Action - Hide in Static */}
+            {!staticMode && face.type === 'cover' && (
                  <div className="absolute bottom-20 inset-x-0 flex justify-center z-20">
                      <button onClick={(e) => { e.stopPropagation(); onOpenBook(); }}
                       disabled={!allFaces.find(f => f.pageIndex === GATE_PAGE)?.imageUrl}
@@ -218,8 +226,8 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
                  </div>
             )}
 
-            {/* Back Cover Actions */}
-            {face.type === 'back_cover' && (
+            {/* Back Cover Actions - Hide in Static */}
+            {!staticMode && face.type === 'back_cover' && (
                 <div className="absolute bottom-24 inset-x-0 flex flex-col items-center gap-4 z-20 w-full px-8">
                     {onNextIssue && (
                          <button onClick={(e) => { e.stopPropagation(); onNextIssue(); }} disabled={isGeneratingNextIssue} className="comic-btn bg-red-600 text-white px-8 py-3 text-2xl font-bold hover:scale-105 w-full animate-pulse disabled:opacity-70 disabled:animate-none">

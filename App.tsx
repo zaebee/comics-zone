@@ -7,11 +7,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MAX_STORY_PAGES, BACK_COVER_PAGE, TOTAL_PAGES, INITIAL_PAGES, BATCH_SIZE, DECISION_PAGES, GENRES, ART_STYLES, TONES, LANGUAGES, ComicFace, Beat, Persona, UiLanguage, SavedState, SharedStory, SharedBeat, SeriesProgress } from './types';
 import { Setup } from './Setup';
 import { Book } from './Book';
+import { Panel } from './Panel'; // Import Panel for export rendering
 import { useApiKey } from './useApiKey';
 import { ApiKeyDialog } from './ApiKeyDialog';
 import { generateStoryBeat, generateCharacterImage, generatePanelImage, generateIssueSummary, generateVillain } from './aiService';
 import { db } from './db';
-import { generatePDF } from './pdfGenerator';
+import { generatePDFFromDOM } from './pdfGenerator'; // Update import
 
 // --- Constants ---
 const MODEL_TEXT_NAME = "gemini-2.5-flash";
@@ -31,6 +32,7 @@ const App: React.FC = () => {
   // --- Series State (The Nemesis System) ---
   const [seriesProgress, setSeriesProgress] = useState<SeriesProgress | null>(null);
   const [isGeneratingNextIssue, setIsGeneratingNextIssue] = useState(false);
+  const [isExporting, setIsExporting] = useState(false); // Export State
 
   useEffect(() => {
       // Simple detection
@@ -483,8 +485,19 @@ const App: React.FC = () => {
       }
   };
 
-  const handleDownloadPDF = () => {
-      generatePDF(comicFaces);
+  const handleDownloadPDF = async () => {
+      if (comicFaces.length === 0) return;
+      
+      setIsExporting(true);
+      // Wait for DOM to render the export container
+      setTimeout(async () => {
+          const pageIds = comicFaces
+            .sort((a, b) => (a.pageIndex || 0) - (b.pageIndex || 0))
+            .map(f => `export-panel-${f.id}`);
+            
+          await generatePDFFromDOM(pageIds);
+          setIsExporting(false);
+      }, 500); // 500ms delay to ensure images/fonts in the hidden container are ready
   };
 
   const handleHeroUpload = async (file: File) => {
@@ -526,6 +539,33 @@ const App: React.FC = () => {
   return (
     <div className="comic-scene">
       {showApiKeyDialog && <ApiKeyDialog onContinue={handleApiKeyDialogContinue} uiLang={uiLang} setUiLang={setUiLang} />}
+      
+      {/* --- EXPORT CONTAINER (Hidden off-screen) --- */}
+      {isExporting && (
+          <div className="fixed top-0 left-[200vw] w-[500px] z-50 pointer-events-none opacity-0">
+              {comicFaces.sort((a,b)=>(a.pageIndex||0)-(b.pageIndex||0)).map(face => (
+                  <div key={face.id} id={`export-panel-${face.id}`} style={{ width: '480px', height: '720px', overflow: 'hidden', background: 'white' }}>
+                      <Panel 
+                          face={face} 
+                          allFaces={comicFaces} 
+                          uiLang={uiLang}
+                          seriesProgress={seriesProgress}
+                          onChoice={()=>{}} onOpenBook={()=>{}} onDownload={()=>{}} onReset={()=>{}} 
+                          staticMode={true} // Enable Static Mode for perfect snapshots
+                      />
+                  </div>
+              ))}
+          </div>
+      )}
+
+      {/* Loading Overlay for Export */}
+      {isExporting && (
+           <div className="fixed inset-0 z-[500] bg-black/90 flex flex-col items-center justify-center">
+               <div className="text-6xl animate-bounce mb-4">🖨️</div>
+               <h2 className="font-comic text-yellow-400 text-4xl">GENERATING PDF...</h2>
+               <p className="text-white font-mono mt-2">Stitching the multiverse together.</p>
+           </div>
+      )}
       
       <Setup 
           show={showSetup}
