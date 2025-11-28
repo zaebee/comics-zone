@@ -1,4 +1,5 @@
 
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -284,12 +285,20 @@ const App: React.FC = () => {
     }, 1100);
   };
 
-  const handleChoice = async (pageIndex: number, choice: string) => {
-      updateFaceState(`page-${pageIndex}`, { resolvedChoice: choice });
-      const maxPage = Math.max(...historyRef.current.map(f => f.pageIndex || 0));
-      if (maxPage + 1 <= TOTAL_PAGES) {
-          generateBatch(maxPage + 1, BATCH_SIZE);
-      }
+  const handleChoice = (pageIndex: number, choice: string) => {
+      // 1. Immediate Visual Feedback (Highlight selected button)
+      updateFaceState(`page-${pageIndex}`, { selectedChoice: choice });
+
+      // 2. Delay for 1 second to allow user to see the selection/animation
+      setTimeout(() => {
+          // 3. Commit the choice (this hides the buttons and advances the narrative)
+          updateFaceState(`page-${pageIndex}`, { resolvedChoice: choice });
+          
+          const maxPage = Math.max(...historyRef.current.map(f => f.pageIndex || 0));
+          if (maxPage + 1 <= TOTAL_PAGES) {
+              generateBatch(maxPage + 1, BATCH_SIZE);
+          }
+      }, 1000);
   }
 
   const resetApp = () => {

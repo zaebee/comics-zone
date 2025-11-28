@@ -1,3 +1,5 @@
+
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -65,13 +67,38 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, onChoice, 
             {/* Decision Buttons */}
             {face.isDecisionPage && face.choices.length > 0 && (
                 <div className={`absolute bottom-0 inset-x-0 p-6 pb-12 flex flex-col gap-3 items-center justify-end transition-opacity duration-500 ${face.resolvedChoice ? 'opacity-0 pointer-events-none' : 'opacity-100'} bg-gradient-to-t from-black/90 via-black/50 to-transparent z-20`}>
-                    <p className="text-white font-comic text-2xl uppercase tracking-widest animate-pulse">{t.whatDrivesYou}</p>
-                    {face.choices.map((choice, i) => (
-                        <button key={i} onClick={(e) => { e.stopPropagation(); if(face.pageIndex) onChoice(face.pageIndex, choice); }}
-                          className={`comic-btn w-full py-3 text-xl font-bold tracking-wider ${i===0?'bg-yellow-400 hover:bg-yellow-300':'bg-blue-500 text-white hover:bg-blue-400'}`}>
-                            {choice}
-                        </button>
-                    ))}
+                    <p className={`text-white font-comic text-2xl uppercase tracking-widest ${face.selectedChoice ? 'opacity-0' : 'animate-pulse'}`}>{t.whatDrivesYou}</p>
+                    {face.choices.map((choice, i) => {
+                        const isSelected = face.selectedChoice === choice;
+                        const isAnySelected = !!face.selectedChoice;
+                        
+                        let stateClasses = "";
+                        if (isAnySelected) {
+                            if (isSelected) {
+                                stateClasses = "bg-green-500 text-white scale-110 ring-4 ring-yellow-300 z-50 shadow-[0_0_20px_rgba(34,197,94,0.6)]";
+                            } else {
+                                stateClasses = "bg-gray-400 text-gray-200 scale-95 opacity-50 grayscale";
+                            }
+                        } else {
+                            stateClasses = i === 0 
+                                ? "bg-yellow-400 hover:bg-yellow-300" 
+                                : "bg-blue-500 text-white hover:bg-blue-400";
+                        }
+
+                        return (
+                            <button 
+                                key={i} 
+                                onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    // Prevent multiple clicks if already selecting
+                                    if(face.pageIndex && !face.selectedChoice) onChoice(face.pageIndex, choice); 
+                                }}
+                                className={`comic-btn w-full py-3 text-xl font-bold tracking-wider transition-all duration-300 ${stateClasses}`}
+                            >
+                                {choice}
+                            </button>
+                        );
+                    })}
                 </div>
             )}
 

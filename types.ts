@@ -1,4 +1,5 @@
 
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -49,6 +50,7 @@ export interface ComicFace {
   narrative?: Beat;
   choices: string[];
   resolvedChoice?: string;
+  selectedChoice?: string; // Transient state for visual feedback before resolution
   isLoading: boolean;
   pageIndex?: number;
   isDecisionPage?: boolean;
