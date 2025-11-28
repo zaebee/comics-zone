@@ -13,6 +13,7 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         apiKeyPlaceholder: "Paste your Gemini API Key here...",
         missionBriefing: "Mission Briefing",
         missionText: "This experience uses Gemini 2.5 Flash for high-speed generation.",
+        keyStoredLocally: "Your key is stored locally in your browser.",
         enterKeyBtn: "Enter Key & Start",
         statusWaiting: "STATUS: WAITING_FOR_KEY",
         
@@ -43,6 +44,9 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         
         // Settings / Backup
         cloudBackupSettings: "Cloud Sync & Backup Settings",
+        hideSettings: "Hide Settings",
+        webhookUrlLabel: "Webhook URL (n8n/Zapier)",
+        webhookPlaceholder: "https://...",
         syncNow: "Sync to Webhook",
         exportSave: "Export Save File",
         importSave: "Import Save File",
@@ -80,6 +84,7 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         apiKeyPlaceholder: "Вставьте ваш API Key от Gemini...",
         missionBriefing: "Брифинг Миссии",
         missionText: "Мы используем Gemini 2.5 Flash для сверхзвуковой генерации.",
+        keyStoredLocally: "Ваш ключ хранится локально в браузере.",
         enterKeyBtn: "Ввести Ключ и Начать",
         statusWaiting: "СТАТУС: ОЖИДАНИЕ_КЛЮЧА",
         
@@ -110,6 +115,9 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         
         // Settings / Backup
         cloudBackupSettings: "Облако и Резервное Копирование",
+        hideSettings: "Скрыть Настройки",
+        webhookUrlLabel: "URL Вебхука (n8n/Zapier)",
+        webhookPlaceholder: "https://...",
         syncNow: "Синхронизировать (Webhook)",
         exportSave: "Скачать Сохранение",
         importSave: "Загрузить Сохранение",

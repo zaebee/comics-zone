@@ -283,12 +283,12 @@ export const Setup: React.FC<SetupProps> = (props) => {
                                 
                                 {/* Backup & Sync Settings */}
                                 <div className="mt-2 pt-2 border-t-2 border-black/10">
-                                     <button onClick={() => setShowSettings(!showSettings)} className="text-xs font-bold underline text-gray-500 hover:text-black mb-1">{showSettings ? 'Hide Cloud/Backup Settings' : t.cloudBackupSettings}</button>
+                                     <button onClick={() => setShowSettings(!showSettings)} className="text-xs font-bold underline text-gray-500 hover:text-black mb-1">{showSettings ? t.hideSettings : t.cloudBackupSettings}</button>
                                      {showSettings && (
                                          <div className="bg-gray-100 p-2 border border-gray-300 text-sm">
                                              <div className="mb-2">
-                                                 <label className="block text-xs font-bold mb-1">Webhook URL (n8n/Zapier)</label>
-                                                 <input type="text" value={props.webhookUrl} onChange={(e) => props.onWebhookUrlChange(e.target.value)} className="w-full border p-1 text-xs" placeholder="https://..." />
+                                                 <label className="block text-xs font-bold mb-1">{t.webhookUrlLabel}</label>
+                                                 <input type="text" value={props.webhookUrl} onChange={(e) => props.onWebhookUrlChange(e.target.value)} className="w-full border p-1 text-xs" placeholder={t.webhookPlaceholder} />
                                                  <button onClick={props.onSync} disabled={!props.webhookUrl} className="mt-1 bg-blue-500 text-white text-xs px-2 py-1 hover:bg-blue-600 disabled:opacity-50 w-full">{t.syncNow}</button>
                                              </div>
                                              <div className="flex gap-2">

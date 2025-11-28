@@ -59,7 +59,7 @@ export const ApiKeyDialog: React.FC<ApiKeyDialogProps> = ({ onContinue, uiLang, 
              <p className="font-sans text-sm text-gray-800 leading-relaxed">
                 {t.missionText}
                 <br/>
-                <span className="text-xs text-gray-500">Your key is stored locally in your browser.</span>
+                <span className="text-xs text-gray-500">{t.keyStoredLocally}</span>
              </p>
         </div>
 
