@@ -13,20 +13,23 @@ interface PanelProps {
     face?: ComicFace;
     allFaces: ComicFace[]; 
     uiLang: UiLanguage;
-    seriesProgress?: SeriesProgress | null; // NEW
+    seriesProgress?: SeriesProgress | null;
     onChoice: (pageIndex: number, choice: string) => void;
     onOpenBook: () => void;
     onDownload: () => void;
     onReset: () => void;
     onShare?: () => string; 
-    onNextIssue?: () => void; // NEW
-    isGeneratingNextIssue?: boolean; // NEW
+    onNextIssue?: () => void;
+    isGeneratingNextIssue?: boolean;
 }
 
 export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProgress, onChoice, onOpenBook, onDownload, onReset, onShare, onNextIssue, isGeneratingNextIssue }) => {
     const t = TRANSLATIONS[uiLang];
     const [linkCopied, setLinkCopied] = useState(false);
     const [imgError, setImgError] = useState(false);
+    
+    // Parallax State
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
         setImgError(false);
@@ -42,6 +45,18 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
         ];
         return anims[Math.floor(Math.random() * anims.length)];
     }, [face?.id]);
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        // Calculate normalized position (-1 to 1)
+        const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+        const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+        setMousePos({ x, y });
+    };
+
+    const handleMouseLeave = () => {
+        setMousePos({ x: 0, y: 0 });
+    };
 
     if (!face) return <div className="w-full h-full bg-gray-950" />;
     if (face.isLoading && !face.imageUrl) return <LoadingFX uiLang={uiLang} />;
@@ -62,7 +77,11 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
     }
 
     return (
-        <div className={`panel-container relative group overflow-hidden ${isFullBleed ? '!p-0 !bg-[#0a0a0a]' : ''}`}>
+        <div 
+            className={`panel-container relative group overflow-hidden ${isFullBleed ? '!p-0 !bg-[#0a0a0a]' : ''}`}
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+        >
              <style>{`
                 @keyframes kenBurnsIn { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
                 @keyframes kenBurnsOut { 0% { transform: scale(1.1); } 100% { transform: scale(1); } }
@@ -78,6 +97,10 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
                     0% { transform: translateY(-20px); opacity: 0; } 
                     100% { transform: translateY(0); opacity: 1; } 
                 }
+                @keyframes float {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-4px); }
+                }
 
                 .animate-ken-burns-in { animation: kenBurnsIn 15s ease-out forwards; }
                 .animate-ken-burns-out { animation: kenBurnsOut 15s ease-out forwards; }
@@ -86,57 +109,84 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
                 
                 .animate-pop-in { animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
                 .animate-slide-down { animation: slideDownFade 0.8s ease-out forwards; }
+                .animate-float { animation: float 3s ease-in-out infinite; }
+                
+                .halftone-overlay {
+                    background-image: radial-gradient(circle, #000 1px, transparent 1px);
+                    background-size: 6px 6px;
+                    opacity: 0.08;
+                    pointer-events: none;
+                }
             `}</style>
 
             <div className="gloss"></div>
+            
+            {/* --- IMAGE LAYER (Parallax Back) --- */}
             {face.imageUrl && !imgError ? (
-                <img 
-                    src={face.imageUrl} 
-                    alt="Comic panel" 
-                    className={`panel-image ${isFullBleed ? '!object-cover' : ''} ${animationClass}`} 
-                    style={{ transformOrigin: 'center center', willChange: 'transform' }}
-                    onError={() => setImgError(true)}
-                />
+                <div 
+                    className="w-full h-full overflow-hidden" 
+                    style={{ 
+                        transform: `translate(${mousePos.x * -10}px, ${mousePos.y * -10}px)`,
+                        transition: 'transform 0.1s ease-out'
+                    }}
+                >
+                    <img 
+                        src={face.imageUrl} 
+                        alt="Comic panel" 
+                        className={`panel-image ${isFullBleed ? '!object-cover' : ''} ${animationClass}`} 
+                        style={{ transformOrigin: 'center center', willChange: 'transform' }}
+                        onError={() => setImgError(true)}
+                    />
+                    {/* Halftone Texture Overlay */}
+                    <div className="absolute inset-0 halftone-overlay mix-blend-multiply"></div>
+                </div>
             ) : face.imageUrl && imgError ? (
                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 p-6 text-center border-[6px] border-red-600 m-1 z-20">
                     <div className="text-6xl mb-4 animate-pulse">⚡</div>
                     <h3 className="font-comic text-red-500 text-3xl font-bold uppercase tracking-widest mb-2" style={{textShadow: '2px 2px 0px black'}}>{t.imageErrorTitle}</h3>
                     <p className="font-comic text-white text-lg leading-tight opacity-90">{t.imageErrorMsg}</p>
-                    {/* Decorative static pattern overlay */}
                     <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,0,0,0.05)_25%,rgba(255,0,0,0.05)_50%,transparent_50%,transparent_75%,rgba(255,0,0,0.05)_75%,rgba(255,0,0,0.05)_100%)] bg-[length:20px_20px] pointer-events-none"></div>
                  </div>
             ) : null}
             
-            {/* --- HTML TEXT OVERLAYS --- */}
-            {face.type === 'story' && face.narrative && !face.isLoading && (
-               <>
-                  {/* Narrative Caption */}
-                  {face.narrative.caption && (
-                      <div className="absolute top-3 left-3 right-12 z-10 pointer-events-none animate-slide-down" style={{animationDelay: '0.3s'}}>
-                          <div className="bg-yellow-200 border-2 border-black p-2 shadow-[3px_3px_0px_rgba(0,0,0,0.5)] inline-block max-w-full transform rotate-[-1deg]">
-                              <p className="font-comic text-black text-sm md:text-base leading-tight">
-                                  {face.narrative.caption}
-                              </p>
-                          </div>
-                      </div>
-                  )}
+            {/* --- TEXT OVERLAY LAYER (Parallax Front) --- */}
+            <div 
+                className="absolute inset-0 pointer-events-none z-10"
+                style={{ 
+                    transform: `translate(${mousePos.x * 5}px, ${mousePos.y * 5}px)`,
+                    transition: 'transform 0.1s ease-out'
+                }}
+            >
+                {face.type === 'story' && face.narrative && !face.isLoading && (
+                <>
+                    {/* Narrative Caption */}
+                    {face.narrative.caption && (
+                        <div className="absolute top-3 left-3 right-12 animate-slide-down" style={{animationDelay: '0.3s'}}>
+                            <div className="bg-yellow-200 border-2 border-black p-2 shadow-[3px_3px_0px_rgba(0,0,0,0.5)] inline-block max-w-full transform rotate-[-1deg]">
+                                <p className="font-comic text-black text-sm md:text-base leading-tight">
+                                    {face.narrative.caption}
+                                </p>
+                            </div>
+                        </div>
+                    )}
 
-                  {/* Speech Bubble */}
-                  {face.narrative.dialogue && (
-                      <div className="absolute bottom-16 right-3 max-w-[85%] z-10 pointer-events-none flex justify-end animate-pop-in" style={{animationDelay: '0.8s'}}>
-                           <div className="relative bg-white border-2 border-black rounded-[20px] rounded-br-none p-3 shadow-[4px_4px_0px_rgba(0,0,0,0.3)] transform rotate-[1deg]">
-                               <p className="font-comic text-black text-lg md:text-xl leading-snug">
-                                   {face.narrative.dialogue}
-                               </p>
-                               <div className="absolute -bottom-[10px] right-0 w-0 h-0 border-l-[10px] border-l-transparent border-r-[0px] border-r-transparent border-t-[12px] border-t-black"></div>
-                               <div className="absolute -bottom-[6px] right-[2px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[0px] border-r-transparent border-t-[9px] border-t-white"></div>
-                           </div>
-                      </div>
-                  )}
-               </>
-            )}
+                    {/* Speech Bubble */}
+                    {face.narrative.dialogue && (
+                        <div className="absolute bottom-16 right-3 max-w-[85%] flex justify-end animate-pop-in" style={{animationDelay: '0.8s'}}>
+                            <div className="relative bg-white border-2 border-black rounded-[20px] rounded-br-none p-3 shadow-[4px_4px_0px_rgba(0,0,0,0.3)] transform rotate-[1deg] animate-float">
+                                <p className="font-comic text-black text-lg md:text-xl leading-snug">
+                                    {face.narrative.dialogue}
+                                </p>
+                                <div className="absolute -bottom-[10px] right-0 w-0 h-0 border-l-[10px] border-l-transparent border-r-[0px] border-r-transparent border-t-[12px] border-t-black"></div>
+                                <div className="absolute -bottom-[6px] right-[2px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[0px] border-r-transparent border-t-[9px] border-t-white"></div>
+                            </div>
+                        </div>
+                    )}
+                </>
+                )}
+            </div>
 
-            {/* Decision Buttons */}
+            {/* Decision Buttons (Static Z-Index layer) */}
             {face.isDecisionPage && face.choices.length > 0 && (
                 <div className={`absolute bottom-0 inset-x-0 p-6 pb-12 flex flex-col gap-3 items-center justify-end transition-opacity duration-500 ${face.resolvedChoice ? 'opacity-0 pointer-events-none' : 'opacity-100'} bg-gradient-to-t from-black/90 via-black/50 to-transparent z-20`}>
                     <p className={`text-white font-comic text-2xl uppercase tracking-widest ${face.selectedChoice ? 'opacity-0' : 'animate-pulse'}`}>{t.whatDrivesYou}</p>
