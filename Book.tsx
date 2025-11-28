@@ -4,7 +4,7 @@
 */
 
 import React from 'react';
-import { ComicFace, TOTAL_PAGES } from './types';
+import { ComicFace, TOTAL_PAGES, UiLanguage } from './types';
 import { Panel } from './Panel';
 
 interface BookProps {
@@ -12,6 +12,7 @@ interface BookProps {
     currentSheetIndex: number;
     isStarted: boolean;
     isSetupVisible: boolean;
+    uiLang: UiLanguage;
     onSheetClick: (index: number) => void;
     onChoice: (pageIndex: number, choice: string) => void;
     onOpenBook: () => void;
@@ -38,10 +39,10 @@ export const Book: React.FC<BookProps> = (props) => {
               <div key={i} className={`paper ${i < props.currentSheetIndex ? 'flipped' : ''}`} style={{ zIndex: i < props.currentSheetIndex ? i : sheetsToRender.length - i }}
                    onClick={() => props.onSheetClick(i)}>
                   <div className="front">
-                      <Panel face={sheet.front} allFaces={props.comicFaces} onChoice={props.onChoice} onOpenBook={props.onOpenBook} onDownload={props.onDownload} onReset={props.onReset} />
+                      <Panel face={sheet.front} allFaces={props.comicFaces} uiLang={props.uiLang} onChoice={props.onChoice} onOpenBook={props.onOpenBook} onDownload={props.onDownload} onReset={props.onReset} />
                   </div>
                   <div className="back">
-                      <Panel face={sheet.back} allFaces={props.comicFaces} onChoice={props.onChoice} onOpenBook={props.onOpenBook} onDownload={props.onDownload} onReset={props.onReset} />
+                      <Panel face={sheet.back} allFaces={props.comicFaces} uiLang={props.uiLang} onChoice={props.onChoice} onOpenBook={props.onOpenBook} onDownload={props.onDownload} onReset={props.onReset} />
                   </div>
               </div>
           ))}

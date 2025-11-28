@@ -39,6 +39,8 @@ export const LANGUAGES = [
     { code: 'zh-CN', name: 'Chinese (China)' }
 ];
 
+export type UiLanguage = 'en' | 'ru';
+
 export interface ComicFace {
   id: string;
   type: 'cover' | 'story' | 'back_cover';

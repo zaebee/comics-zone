@@ -1,15 +1,17 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
 
 import React, { useState, useEffect } from 'react';
-import { GENRES, LANGUAGES, Persona } from './types';
+import { GENRES, LANGUAGES, Persona, UiLanguage } from './types';
+import { TRANSLATIONS, REMIXES_EN, REMIXES_RU } from './translations';
 
 interface SetupProps {
     show: boolean;
     isTransitioning: boolean;
+    uiLang: UiLanguage;
+    setUiLang: (lang: UiLanguage) => void;
     hero: Persona | null;
     friend: Persona | null;
     selectedGenre: string;
@@ -25,40 +27,35 @@ interface SetupProps {
     onLaunch: () => void;
 }
 
-const Footer = () => {
+const Footer: React.FC<{uiLang: UiLanguage}> = ({uiLang}) => {
   const [remixIndex, setRemixIndex] = useState(0);
-  const remixes = [
-    "Add sounds to panels",
-    "Animate panels with Veo 3",
-    "Localize to Klingon",
-    "Add a villain generator",
-    "Print physical copies",
-    "Add voice narration",
-    "Create a shared universe"
-  ];
+  const t = TRANSLATIONS[uiLang];
+  const remixes = uiLang === 'ru' ? REMIXES_RU : REMIXES_EN;
 
   useEffect(() => {
     const interval = setInterval(() => {
       setRemixIndex(prev => (prev + 1) % remixes.length);
     }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [remixes.length]);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-black text-white py-3 px-6 flex flex-col md:flex-row justify-between items-center z-[300] border-t-4 border-yellow-400 font-comic">
         <div className="flex items-center gap-2 text-lg md:text-xl">
-            <span className="text-yellow-400 font-bold">REMIX IDEA:</span>
+            <span className="text-yellow-400 font-bold">{t.remixIdea}</span>
             <span className="animate-pulse">{remixes[remixIndex]}</span>
         </div>
         <div className="flex items-center gap-4 mt-2 md:mt-0">
-            <span className="text-gray-500 text-sm hidden md:inline">Build with Gemini</span>
-            <a href="https://x.com/ammaar" target="_blank" rel="noopener noreferrer" className="text-white hover:text-yellow-400 transition-colors text-xl">Created by @ammaar</a>
+            <span className="text-gray-500 text-sm hidden md:inline">{t.builtWith}</span>
+            <a href="https://x.com/ammaar" target="_blank" rel="noopener noreferrer" className="text-white hover:text-yellow-400 transition-colors text-xl">{t.createdBy}</a>
         </div>
     </div>
   );
 };
 
 export const Setup: React.FC<SetupProps> = (props) => {
+    const t = TRANSLATIONS[props.uiLang];
+    
     if (!props.show && !props.isTransitioning) return null;
 
     return (
@@ -95,6 +92,12 @@ export const Setup: React.FC<SetupProps> = (props) => {
             {/* Compacted width and internal spacing */}
             <div className="max-w-[900px] w-full bg-white p-4 md:p-5 rotate-1 border-[6px] border-black shadow-[12px_12px_0px_rgba(0,0,0,0.6)] text-center relative">
                 
+                {/* Setup Lang Toggle */}
+                <div className="absolute top-2 right-2 flex gap-1 z-10">
+                    <button onClick={() => props.setUiLang('en')} className={`font-comic text-xs px-2 py-1 border border-black ${props.uiLang === 'en' ? 'bg-black text-white' : 'bg-white text-gray-500'}`}>EN</button>
+                    <button onClick={() => props.setUiLang('ru')} className={`font-comic text-xs px-2 py-1 border border-black ${props.uiLang === 'ru' ? 'bg-black text-white' : 'bg-white text-gray-500'}`}>RU</button>
+                </div>
+
                 <h1 className="font-comic text-5xl text-red-600 leading-none mb-1 tracking-wide inline-block mr-3" style={{textShadow: '2px 2px 0px black'}}>INFINITE</h1>
                 <h1 className="font-comic text-5xl text-yellow-400 leading-none mb-4 tracking-wide inline-block" style={{textShadow: '2px 2px 0px black'}}>HEROES</h1>
                 
@@ -102,26 +105,26 @@ export const Setup: React.FC<SetupProps> = (props) => {
                     
                     {/* Left Column: Cast */}
                     <div className="flex-1 flex flex-col gap-2">
-                        <div className="font-comic text-xl text-black border-b-4 border-black mb-1">1. THE CAST</div>
+                        <div className="font-comic text-xl text-black border-b-4 border-black mb-1">{t.theCast}</div>
                         
                         {/* HERO UPLOAD */}
                         <div className={`p-3 border-4 border-dashed ${props.hero ? 'border-green-500 bg-green-50' : 'border-blue-300 bg-blue-50'} transition-colors relative group`}>
                             <div className="flex justify-between items-center mb-1">
-                                <p className="font-comic text-lg uppercase font-bold text-blue-900">HERO (REQUIRED)</p>
-                                {props.hero && <span className="text-green-600 font-bold font-comic text-sm animate-pulse">✓ READY</span>}
+                                <p className="font-comic text-lg uppercase font-bold text-blue-900">{t.heroRequired}</p>
+                                {props.hero && <span className="text-green-600 font-bold font-comic text-sm animate-pulse">{t.ready}</span>}
                             </div>
                             
                             {props.hero ? (
                                 <div className="flex gap-3 items-center mt-1">
                                      <img src={`data:image/jpeg;base64,${props.hero.base64}`} alt="Hero Preview" className="w-20 h-20 object-cover border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,0.2)] bg-white rotate-[-2deg]" />
                                      <label className="cursor-pointer comic-btn bg-yellow-400 text-black text-sm px-3 py-1 hover:bg-yellow-300 transition-transform active:scale-95 uppercase">
-                                         REPLACE
+                                         {t.replace}
                                          <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && props.onHeroUpload(e.target.files[0])} />
                                      </label>
                                 </div>
                             ) : (
                                 <label className="comic-btn bg-blue-500 text-white text-lg px-3 py-3 block w-full hover:bg-blue-400 cursor-pointer text-center">
-                                    UPLOAD HERO 
+                                    {t.uploadHero}
                                     <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && props.onHeroUpload(e.target.files[0])} />
                                 </label>
                             )}
@@ -130,21 +133,21 @@ export const Setup: React.FC<SetupProps> = (props) => {
                         {/* CO-STAR UPLOAD */}
                         <div className={`p-3 border-4 border-dashed ${props.friend ? 'border-green-500 bg-green-50' : 'border-purple-300 bg-purple-50'} transition-colors`}>
                             <div className="flex justify-between items-center mb-1">
-                                <p className="font-comic text-lg uppercase font-bold text-purple-900">CO-STAR (OPTIONAL)</p>
-                                {props.friend && <span className="text-green-600 font-bold font-comic text-sm animate-pulse">✓ READY</span>}
+                                <p className="font-comic text-lg uppercase font-bold text-purple-900">{t.coStarOptional}</p>
+                                {props.friend && <span className="text-green-600 font-bold font-comic text-sm animate-pulse">{t.ready}</span>}
                             </div>
 
                             {props.friend ? (
                                 <div className="flex gap-3 items-center mt-1">
                                     <img src={`data:image/jpeg;base64,${props.friend.base64}`} alt="Co-Star Preview" className="w-20 h-20 object-cover border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,0.2)] bg-white rotate-[2deg]" />
                                     <label className="cursor-pointer comic-btn bg-yellow-400 text-black text-sm px-3 py-1 hover:bg-yellow-300 transition-transform active:scale-95 uppercase">
-                                        REPLACE
+                                        {t.replace}
                                         <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && props.onFriendUpload(e.target.files[0])} />
                                     </label>
                                 </div>
                             ) : (
                                 <label className="comic-btn bg-purple-500 text-white text-lg px-3 py-3 block w-full hover:bg-purple-400 cursor-pointer text-center">
-                                    UPLOAD CO-STAR 
+                                    {t.uploadCoStar}
                                     <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && props.onFriendUpload(e.target.files[0])} />
                                 </label>
                             )}
@@ -152,25 +155,25 @@ export const Setup: React.FC<SetupProps> = (props) => {
                         
                         {/* Privacy Policy Text */}
                         <p className="text-[10px] text-gray-500 leading-tight mt-1 px-1">
-                            The Prohibited Use Policy applies. Do not generate content that infringes on others' privacy rights.
+                            {t.privacyPolicy}
                         </p>
                     </div>
 
                     {/* Right Column: Settings */}
                     <div className="flex-1 flex flex-col gap-2">
-                        <div className="font-comic text-xl text-black border-b-4 border-black mb-1">2. THE STORY</div>
+                        <div className="font-comic text-xl text-black border-b-4 border-black mb-1">{t.theStory}</div>
                         
                         <div className="bg-yellow-50 p-3 border-4 border-black h-full flex flex-col justify-between">
                             <div>
                                 <div className="mb-2">
-                                    <p className="font-comic text-base mb-1 font-bold text-gray-800">GENRE</p>
+                                    <p className="font-comic text-base mb-1 font-bold text-gray-800">{t.genre}</p>
                                     <select value={props.selectedGenre} onChange={(e) => props.onGenreChange(e.target.value)} className="w-full font-comic text-lg p-1 border-2 border-black uppercase bg-white text-black cursor-pointer shadow-[3px_3px_0px_rgba(0,0,0,0.2)] focus:outline-none focus:translate-x-[1px] focus:translate-y-[1px] focus:shadow-none transition-all">
                                         {GENRES.map(g => <option key={g} value={g} className="text-black">{g}</option>)}
                                     </select>
                                 </div>
 
                                 <div className="mb-2">
-                                    <p className="font-comic text-base mb-1 font-bold text-gray-800">LANGUAGE</p>
+                                    <p className="font-comic text-base mb-1 font-bold text-gray-800">{t.storyLanguage}</p>
                                     <select value={props.selectedLanguage} onChange={(e) => props.onLanguageChange(e.target.value)} className="w-full font-comic text-lg p-1 border-2 border-black uppercase bg-white text-black cursor-pointer shadow-[3px_3px_0px_rgba(0,0,0,0.2)]">
                                         {LANGUAGES.map(l => <option key={l.code} value={l.code} className="text-black">{l.name}</option>)}
                                     </select>
@@ -178,29 +181,29 @@ export const Setup: React.FC<SetupProps> = (props) => {
 
                                 {props.selectedGenre === 'Custom' && (
                                     <div className="mb-2">
-                                        <p className="font-comic text-base mb-1 font-bold text-gray-800">PREMISE</p>
-                                        <textarea value={props.customPremise} onChange={(e) => props.onPremiseChange(e.target.value)} placeholder="Enter your story premise..." className="w-full p-1 border-2 border-black font-comic text-lg h-16 resize-none shadow-[3px_3px_0px_rgba(0,0,0,0.2)]" />
+                                        <p className="font-comic text-base mb-1 font-bold text-gray-800">{t.premise}</p>
+                                        <textarea value={props.customPremise} onChange={(e) => props.onPremiseChange(e.target.value)} placeholder={t.premisePlaceholder} className="w-full p-1 border-2 border-black font-comic text-lg h-16 resize-none shadow-[3px_3px_0px_rgba(0,0,0,0.2)]" />
                                     </div>
                                 )}
                             </div>
                             
                             <label className="flex items-center gap-2 font-comic text-base cursor-pointer text-black mt-1 p-1 hover:bg-yellow-100 rounded border-2 border-transparent hover:border-yellow-300 transition-colors">
                                 <input type="checkbox" checked={props.richMode} onChange={(e) => props.onRichModeChange(e.target.checked)} className="w-4 h-4 accent-black" />
-                                <span className="text-black">NOVEL MODE (Rich Dialogue)</span>
+                                <span className="text-black">{t.novelMode}</span>
                             </label>
                         </div>
                     </div>
                 </div>
 
                 <button onClick={props.onLaunch} disabled={!props.hero || props.isTransitioning} className="comic-btn bg-red-600 text-white text-3xl px-6 py-3 w-full hover:bg-red-500 disabled:bg-gray-400 disabled:cursor-not-allowed uppercase tracking-wider">
-                    {props.isTransitioning ? 'LAUNCHING...' : 'START ADVENTURE!'}
+                    {props.isTransitioning ? t.launching : t.launchBtn}
                 </button>
             </div>
           </div>
         </div>
 
         {/* Footer is only visible when setup is active */}
-        <Footer />
+        <Footer uiLang={props.uiLang} />
         </>
     );
 }

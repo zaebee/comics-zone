@@ -1,12 +1,11 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import jsPDF from 'jspdf';
-import { MAX_STORY_PAGES, BACK_COVER_PAGE, TOTAL_PAGES, INITIAL_PAGES, BATCH_SIZE, DECISION_PAGES, GENRES, TONES, LANGUAGES, ComicFace, Beat, Persona } from './types';
+import { MAX_STORY_PAGES, BACK_COVER_PAGE, TOTAL_PAGES, INITIAL_PAGES, BATCH_SIZE, DECISION_PAGES, GENRES, TONES, LANGUAGES, ComicFace, Beat, Persona, UiLanguage } from './types';
 import { Setup } from './Setup';
 import { Book } from './Book';
 import { useApiKey } from './useApiKey';
@@ -21,6 +20,16 @@ const MODEL_IMAGE_GEN_NAME = "gemini-2.5-flash-image";
 const App: React.FC = () => {
   // --- API Key Hook ---
   const { apiKey, validateApiKey, setShowApiKeyDialog, showApiKeyDialog, handleApiKeyDialogContinue } = useApiKey();
+  
+  // --- UI Language State ---
+  const [uiLang, setUiLang] = useState<UiLanguage>('en');
+
+  useEffect(() => {
+      // Simple detection
+      if (navigator.language.startsWith('ru')) {
+          setUiLang('ru');
+      }
+  }, []);
 
   const [hero, setHeroState] = useState<Persona | null>(null);
   const [friend, setFriendState] = useState<Persona | null>(null);
@@ -275,11 +284,13 @@ const App: React.FC = () => {
 
   return (
     <div className="comic-scene">
-      {showApiKeyDialog && <ApiKeyDialog onContinue={handleApiKeyDialogContinue} />}
+      {showApiKeyDialog && <ApiKeyDialog onContinue={handleApiKeyDialogContinue} uiLang={uiLang} setUiLang={setUiLang} />}
       
       <Setup 
           show={showSetup}
           isTransitioning={isTransitioning}
+          uiLang={uiLang}
+          setUiLang={setUiLang}
           hero={hero}
           friend={friend}
           selectedGenre={selectedGenre}
@@ -300,6 +311,7 @@ const App: React.FC = () => {
           currentSheetIndex={currentSheetIndex}
           isStarted={isStarted}
           isSetupVisible={showSetup && !isTransitioning}
+          uiLang={uiLang}
           onSheetClick={handleSheetClick}
           onChoice={handleChoice}
           onOpenBook={() => setCurrentSheetIndex(1)}
