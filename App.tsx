@@ -7,7 +7,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import jsPDF from 'jspdf';
-import { MAX_STORY_PAGES, BACK_COVER_PAGE, TOTAL_PAGES, INITIAL_PAGES, BATCH_SIZE, DECISION_PAGES, GENRES, TONES, LANGUAGES, ComicFace, Beat, Persona, UiLanguage, SavedState } from './types';
+import { MAX_STORY_PAGES, BACK_COVER_PAGE, TOTAL_PAGES, INITIAL_PAGES, BATCH_SIZE, DECISION_PAGES, GENRES, TONES, LANGUAGES, ComicFace, Beat, Persona, UiLanguage, SavedState, SharedStory, SharedBeat } from './types';
 import { Setup } from './Setup';
 import { Book } from './Book';
 import { useApiKey } from './useApiKey';
@@ -27,10 +27,35 @@ const App: React.FC = () => {
   // --- UI Language State ---
   const [uiLang, setUiLang] = useState<UiLanguage>('en');
 
+  // --- Shared Story State ---
+  const [sharedStory, setSharedStory] = useState<SharedStory | null>(null);
+
   useEffect(() => {
       // Simple detection
       if (navigator.language.startsWith('ru')) {
           setUiLang('ru');
+      }
+
+      // Check for Shared Story URL Param
+      const params = new URLSearchParams(window.location.search);
+      const storyParam = params.get('story');
+      if (storyParam) {
+          try {
+              const jsonStr = atob(storyParam);
+              const data = JSON.parse(jsonStr) as SharedStory;
+              if (data && data.b) {
+                  setSharedStory(data);
+                  // Lock controls to match story
+                  setSelectedGenre(data.gen);
+                  setSelectedLanguage(data.lang);
+                  setStoryTone(data.t);
+                  setCustomPremise(data.p);
+                  // Clear local save if loading a shared link to avoid conflicts
+                  localStorage.removeItem(SAVE_KEY);
+              }
+          } catch (e) {
+              console.error("Failed to parse shared story", e);
+          }
       }
   }, []);
 
@@ -61,7 +86,8 @@ const App: React.FC = () => {
 
   // --- Auto-Save ---
   useEffect(() => {
-    if (isStarted && comicFaces.length > 0) {
+    // Don't auto-save if we are in Shared Mode (User B shouldn't overwrite their own saves with a shared view)
+    if (isStarted && comicFaces.length > 0 && !sharedStory) {
         try {
             const stateToSave: SavedState = {
                 hero: heroRef.current,
@@ -80,7 +106,7 @@ const App: React.FC = () => {
             console.error("Failed to save progress to local storage", e);
         }
     }
-  }, [comicFaces, currentSheetIndex, isStarted, selectedGenre, selectedLanguage, customPremise, storyTone, richMode]);
+  }, [comicFaces, currentSheetIndex, isStarted, selectedGenre, selectedLanguage, customPremise, storyTone, richMode, sharedStory]);
 
   const loadFromSave = () => {
       try {
@@ -141,50 +167,101 @@ const App: React.FC = () => {
       if (idx !== -1) historyRef.current[idx] = { ...historyRef.current[idx], ...updates };
   };
 
+  // --- SERIALIZATION FOR SHARING ---
+  const getShareLink = () => {
+      if (historyRef.current.length === 0) return "";
+      
+      const beats = historyRef.current
+        .filter(f => f.type === 'story' && f.narrative)
+        .map(f => ({
+           c: f.narrative?.caption,
+           d: f.narrative?.dialogue,
+           s: f.narrative?.scene || "",
+           fc: f.narrative?.focus_char || 'hero',
+           ch: f.choices || [],
+           rc: f.resolvedChoice
+        } as SharedBeat));
+
+      const payload: SharedStory = {
+          gen: selectedGenre,
+          lang: selectedLanguage,
+          t: storyTone,
+          p: customPremise,
+          b: beats
+      };
+
+      try {
+          const str = btoa(JSON.stringify(payload));
+          return `${window.location.origin}${window.location.pathname}?story=${str}`;
+      } catch (e) {
+          console.error("Error creating share link", e);
+          return "";
+      }
+  };
+
   const generateSinglePage = async (faceId: string, pageNum: number, type: ComicFace['type']) => {
       const isDecision = DECISION_PAGES.includes(pageNum);
       let beat: Beat = { scene: "", choices: [], focus_char: 'other' };
+      let resolvedChoiceForShared: string | undefined = undefined;
 
       if (type === 'cover') {
            // Cover beat handled in image gen
       } else if (type === 'back_cover') {
            beat = { scene: "Thematic teaser image", choices: [], focus_char: 'other' };
       } else {
-           try {
-             beat = await generateStoryBeat(apiKey, {
-                history: historyRef.current,
-                pageNum,
-                isDecisionPage: isDecision,
-                selectedGenre,
-                selectedLanguage,
-                storyTone,
-                richMode,
-                customPremise,
-                hero: heroRef.current,
-                friend: friendRef.current,
-                modelName: MODEL_TEXT_NAME
-             });
-           } catch (e) {
-             handleAPIError(e);
-             return;
+           // --- SHARED STORY MODE CHECK ---
+           if (sharedStory && sharedStory.b[pageNum - 1]) {
+               // Use pre-loaded beat from URL
+               const sb = sharedStory.b[pageNum - 1];
+               beat = {
+                   caption: sb.c,
+                   dialogue: sb.d,
+                   scene: sb.s,
+                   choices: sb.ch,
+                   focus_char: sb.fc
+               };
+               resolvedChoiceForShared = sb.rc;
+           } else {
+               // --- NORMAL GENERATION MODE ---
+               try {
+                 beat = await generateStoryBeat(apiKey, {
+                    history: historyRef.current,
+                    pageNum,
+                    isDecisionPage: isDecision,
+                    selectedGenre,
+                    selectedLanguage,
+                    storyTone,
+                    richMode,
+                    customPremise,
+                    hero: heroRef.current,
+                    friend: friendRef.current,
+                    modelName: MODEL_TEXT_NAME
+                 });
+               } catch (e) {
+                 handleAPIError(e);
+                 return;
+               }
            }
       }
 
-      // Generate Friend Image if needed
+      // Generate Friend Image if needed (and not already existing)
       if (beat.focus_char === 'friend' && !friendRef.current && type === 'story') {
           try {
               const desc = selectedGenre === 'Custom' ? "A fitting sidekick for this story" : `Sidekick for ${selectedGenre} story.`;
               const base64 = await generateCharacterImage(apiKey, desc, MODEL_IMAGE_GEN_NAME);
-              // Auto-name generated friend if blank
               setFriend({ base64, desc, name: "The Sidekick" });
           } catch (e) { 
-              // If friend gen fails, we downgrade focus to other, but don't stop the story
               console.warn("Friend generation failed, continuing without friend image.");
               beat.focus_char = 'other'; 
           }
       }
 
-      updateFaceState(faceId, { narrative: beat, choices: beat.choices, isDecisionPage: isDecision });
+      updateFaceState(faceId, { 
+          narrative: beat, 
+          choices: beat.choices, 
+          isDecisionPage: isDecision,
+          resolvedChoice: resolvedChoiceForShared 
+      });
       
       try {
           const url = await generatePanelImage(apiKey, {
@@ -199,7 +276,6 @@ const App: React.FC = () => {
           updateFaceState(faceId, { imageUrl: url, isLoading: false });
       } catch (e) {
           handleAPIError(e);
-          // Don't leave it loading forever
           updateFaceState(faceId, { isLoading: false });
       }
   };
@@ -229,6 +305,8 @@ const App: React.FC = () => {
       newFaces.forEach(f => { if (!historyRef.current.find(h => h.id === f.id)) historyRef.current.push(f); });
 
       try {
+          // In Shared Mode, we can potentially generate faster since we don't wait for text
+          // But we still want to stagger them slightly to not hit rate limits on image gen
           for (const pageNum of pagesToGen) {
                await generateSinglePage(`page-${pageNum}`, pageNum, pageNum === BACK_COVER_PAGE ? 'back_cover' : 'story');
                generatingPages.current.delete(pageNum);
@@ -246,7 +324,7 @@ const App: React.FC = () => {
     if (!hasKey) return; 
     
     if (!heroRef.current) return;
-    if (selectedGenre === 'Custom' && !customPremise.trim()) {
+    if (selectedGenre === 'Custom' && !customPremise.trim() && !sharedStory) {
         alert("Please enter a custom story premise.");
         return;
     }
@@ -260,14 +338,16 @@ const App: React.FC = () => {
 
     setIsTransitioning(true);
     
-    let availableTones = TONES;
-    if (selectedGenre === "Teen Drama / Slice of Life" || selectedGenre === "Lighthearted Comedy") {
-        availableTones = TONES.filter(t => t.includes("CASUAL") || t.includes("WHOLESOME") || t.includes("QUIPPY"));
-    } else if (selectedGenre === "Classic Horror") {
-        availableTones = TONES.filter(t => t.includes("INNER-MONOLOGUE") || t.includes("OPERATIC"));
+    if (!sharedStory) {
+        // Random tone only if new story
+        let availableTones = TONES;
+        if (selectedGenre === "Teen Drama / Slice of Life" || selectedGenre === "Lighthearted Comedy") {
+            availableTones = TONES.filter(t => t.includes("CASUAL") || t.includes("WHOLESOME") || t.includes("QUIPPY"));
+        } else if (selectedGenre === "Classic Horror") {
+            availableTones = TONES.filter(t => t.includes("INNER-MONOLOGUE") || t.includes("OPERATIC"));
+        }
+        setStoryTone(availableTones[Math.floor(Math.random() * availableTones.length)]);
     }
-    
-    setStoryTone(availableTones[Math.floor(Math.random() * availableTones.length)]);
 
     const coverFace: ComicFace = { id: 'cover', type: 'cover', choices: [], isLoading: true, pageIndex: 0 };
     setComicFaces([coverFace]);
@@ -286,12 +366,12 @@ const App: React.FC = () => {
   };
 
   const handleChoice = (pageIndex: number, choice: string) => {
-      // 1. Immediate Visual Feedback (Highlight selected button)
+      // 1. Immediate Visual Feedback
       updateFaceState(`page-${pageIndex}`, { selectedChoice: choice });
 
-      // 2. Delay for 1 second to allow user to see the selection/animation
+      // 2. Delay for 1 second
       setTimeout(() => {
-          // 3. Commit the choice (this hides the buttons and advances the narrative)
+          // 3. Commit the choice
           updateFaceState(`page-${pageIndex}`, { resolvedChoice: choice });
           
           const maxPage = Math.max(...historyRef.current.map(f => f.pageIndex || 0));
@@ -308,6 +388,12 @@ const App: React.FC = () => {
       setCurrentSheetIndex(0);
       historyRef.current = [];
       generatingPages.current.clear();
+      
+      // Clear URL param if it exists so we can start fresh
+      if (sharedStory) {
+          window.history.pushState({}, document.title, window.location.pathname);
+          setSharedStory(null);
+      }
       // Keep hero/friend for easy restart
   };
 
@@ -355,7 +441,6 @@ const App: React.FC = () => {
   };
 
   const handleHeroNameChange = (name: string) => {
-      // Create temp hero object if name typed before upload, or update existing
       if (!heroRef.current) {
           setHero({ base64: "", desc: "The Main Hero", name });
       } else {
@@ -369,7 +454,7 @@ const App: React.FC = () => {
     } else {
         setFriend({ ...friendRef.current, name });
     }
-};
+  };
 
   const handleSheetClick = (index: number) => {
       if (!isStarted) return;
@@ -387,12 +472,13 @@ const App: React.FC = () => {
           isTransitioning={isTransitioning}
           uiLang={uiLang}
           setUiLang={setUiLang}
-          hero={hero?.base64 ? hero : null} // Only pass if base64 exists (uploaded)
+          hero={hero?.base64 ? hero : null} 
           friend={friend?.base64 ? friend : null}
           selectedGenre={selectedGenre}
           selectedLanguage={selectedLanguage}
           customPremise={customPremise}
           richMode={richMode}
+          isSharedMode={!!sharedStory}
           onHeroUpload={handleHeroUpload}
           onFriendUpload={handleFriendUpload}
           onHeroNameChange={(name) => handleHeroNameChange(name)}
@@ -416,6 +502,7 @@ const App: React.FC = () => {
           onOpenBook={() => setCurrentSheetIndex(1)}
           onDownload={downloadPDF}
           onReset={resetApp}
+          onShare={getShareLink}
       />
     </div>
   );

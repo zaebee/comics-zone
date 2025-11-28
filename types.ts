@@ -82,3 +82,21 @@ export interface SavedState {
   currentSheetIndex: number;
   isStarted: boolean;
 }
+
+// Lightweight structure for URL sharing
+export interface SharedBeat {
+    c?: string; // caption
+    d?: string; // dialogue
+    s: string;  // scene
+    fc: 'hero' | 'friend' | 'other';
+    ch: string[]; // choices
+    rc?: string; // resolved choice
+}
+
+export interface SharedStory {
+    gen: string; // genre
+    lang: string;
+    t: string; // tone
+    p: string; // premise
+    b: SharedBeat[]; // beats
+}

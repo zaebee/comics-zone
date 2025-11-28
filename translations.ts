@@ -1,4 +1,5 @@
 
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -41,6 +42,13 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         builtWith: "Build with Gemini",
         createdBy: "Created by @ammaar",
         
+        // Shared Story Extras
+        sharedStoryMode: "SHARED STORY MODE",
+        visualizeShared: "VISUALIZE SHARED STORY",
+        lockedByStory: "LOCKED BY SHARED SCRIPT",
+        shareBtn: "SHARE THIS ISSUE",
+        linkCopied: "LINK COPIED!",
+        
         // Book / Panel
         whatDrivesYou: "What drives you?",
         printing: "PRINTING...",
@@ -82,6 +90,13 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         remixIdea: "ИДЕЯ ДЛЯ РЕМИКСА:",
         builtWith: "Сделано с Gemini",
         createdBy: "Создано @ammaar",
+
+        // Shared Story Extras
+        sharedStoryMode: "РЕЖИМ СОВМЕСТНОЙ ИСТОРИИ",
+        visualizeShared: "ВИЗУАЛИЗИРОВАТЬ ИСТОРИЮ",
+        lockedByStory: "ЗАБЛОКИРОВАНО СЦЕНАРИЕМ",
+        shareBtn: "ПОДЕЛИТЬСЯ ВЫПУСКОМ",
+        linkCopied: "ССЫЛКА СКОПИРОВАНА!",
 
         // Book / Panel
         whatDrivesYou: "Что движет тобой?",
