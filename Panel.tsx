@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ComicFace, INITIAL_PAGES, GATE_PAGE, UiLanguage } from './types';
 import { LoadingFX } from './LoadingFX';
 import { TRANSLATIONS } from './translations';
@@ -23,6 +23,12 @@ interface PanelProps {
 export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, onChoice, onOpenBook, onDownload, onReset, onShare }) => {
     const t = TRANSLATIONS[uiLang];
     const [linkCopied, setLinkCopied] = useState(false);
+    const [imgError, setImgError] = useState(false);
+
+    // Reset error state when the image URL changes
+    useEffect(() => {
+        setImgError(false);
+    }, [face?.imageUrl]);
 
     // Randomize the animation style for this specific panel instance so it stays consistent
     const animationClass = useMemo(() => {
@@ -82,14 +88,21 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, onChoice, 
             `}</style>
 
             <div className="gloss"></div>
-            {face.imageUrl && (
+            {face.imageUrl && !imgError ? (
                 <img 
                     src={face.imageUrl} 
                     alt="Comic panel" 
                     className={`panel-image ${isFullBleed ? '!object-cover' : ''} ${animationClass}`} 
                     style={{ transformOrigin: 'center center', willChange: 'transform' }}
+                    onError={() => setImgError(true)}
                 />
-            )}
+            ) : face.imageUrl && imgError ? (
+                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100 p-4 text-center border-4 border-red-500 m-2">
+                    <div className="text-4xl mb-2">⚠️</div>
+                    <p className="font-comic text-red-600 text-xl font-bold">IMAGE ERROR</p>
+                    <p className="font-comic text-gray-500 text-sm">The visuals failed to manifest.</p>
+                 </div>
+            ) : null}
             
             {/* --- HTML TEXT OVERLAYS --- */}
             {face.type === 'story' && face.narrative && !face.isLoading && (

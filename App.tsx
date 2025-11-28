@@ -7,7 +7,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import jsPDF from 'jspdf';
-import { MAX_STORY_PAGES, BACK_COVER_PAGE, TOTAL_PAGES, INITIAL_PAGES, BATCH_SIZE, DECISION_PAGES, GENRES, TONES, LANGUAGES, ComicFace, Beat, Persona, UiLanguage, SavedState, SharedStory, SharedBeat } from './types';
+import { MAX_STORY_PAGES, BACK_COVER_PAGE, TOTAL_PAGES, INITIAL_PAGES, BATCH_SIZE, DECISION_PAGES, GENRES, ART_STYLES, TONES, LANGUAGES, ComicFace, Beat, Persona, UiLanguage, SavedState, SharedStory, SharedBeat } from './types';
 import { Setup } from './Setup';
 import { Book } from './Book';
 import { useApiKey } from './useApiKey';
@@ -47,6 +47,7 @@ const App: React.FC = () => {
                   setSharedStory(data);
                   // Lock controls to match story
                   setSelectedGenre(data.gen);
+                  if (data.style) setSelectedArtStyle(data.style);
                   setSelectedLanguage(data.lang);
                   setStoryTone(data.t);
                   setCustomPremise(data.p);
@@ -62,6 +63,7 @@ const App: React.FC = () => {
   const [hero, setHeroState] = useState<Persona | null>(null);
   const [friend, setFriendState] = useState<Persona | null>(null);
   const [selectedGenre, setSelectedGenre] = useState(GENRES[0]);
+  const [selectedArtStyle, setSelectedArtStyle] = useState(ART_STYLES[0]);
   const [selectedLanguage, setSelectedLanguage] = useState(LANGUAGES[0].code);
   const [customPremise, setCustomPremise] = useState("");
   const [storyTone, setStoryTone] = useState(TONES[0]);
@@ -93,6 +95,7 @@ const App: React.FC = () => {
                 hero: heroRef.current,
                 friend: friendRef.current,
                 selectedGenre,
+                selectedArtStyle,
                 selectedLanguage,
                 customPremise,
                 storyTone,
@@ -106,7 +109,7 @@ const App: React.FC = () => {
             console.error("Failed to save progress to local storage", e);
         }
     }
-  }, [comicFaces, currentSheetIndex, isStarted, selectedGenre, selectedLanguage, customPremise, storyTone, richMode, sharedStory]);
+  }, [comicFaces, currentSheetIndex, isStarted, selectedGenre, selectedArtStyle, selectedLanguage, customPremise, storyTone, richMode, sharedStory]);
 
   const loadFromSave = () => {
       try {
@@ -117,6 +120,7 @@ const App: React.FC = () => {
           setHero(data.hero);
           setFriend(data.friend);
           setSelectedGenre(data.selectedGenre);
+          if (data.selectedArtStyle) setSelectedArtStyle(data.selectedArtStyle);
           setSelectedLanguage(data.selectedLanguage);
           setCustomPremise(data.customPremise);
           setStoryTone(data.storyTone);
@@ -184,6 +188,7 @@ const App: React.FC = () => {
 
       const payload: SharedStory = {
           gen: selectedGenre,
+          style: selectedArtStyle,
           lang: selectedLanguage,
           t: storyTone,
           p: customPremise,
@@ -270,6 +275,7 @@ const App: React.FC = () => {
               hero: heroRef.current,
               friend: friendRef.current,
               selectedGenre,
+              selectedArtStyle,
               selectedLanguage,
               modelName: MODEL_IMAGE_GEN_NAME
           });
@@ -475,6 +481,7 @@ const App: React.FC = () => {
           hero={hero?.base64 ? hero : null} 
           friend={friend?.base64 ? friend : null}
           selectedGenre={selectedGenre}
+          selectedArtStyle={selectedArtStyle}
           selectedLanguage={selectedLanguage}
           customPremise={customPremise}
           richMode={richMode}
@@ -484,6 +491,7 @@ const App: React.FC = () => {
           onHeroNameChange={(name) => handleHeroNameChange(name)}
           onFriendNameChange={(name) => handleFriendNameChange(name)}
           onGenreChange={setSelectedGenre}
+          onArtStyleChange={setSelectedArtStyle}
           onLanguageChange={setSelectedLanguage}
           onPremiseChange={setCustomPremise}
           onRichModeChange={setRichMode}

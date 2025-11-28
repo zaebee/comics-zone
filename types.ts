@@ -14,6 +14,20 @@ export const BATCH_SIZE = 6;
 export const DECISION_PAGES = [3];
 
 export const GENRES = ["Classic Horror", "Superhero Action", "Dark Sci-Fi", "High Fantasy", "Neon Noir Detective", "Wasteland Apocalypse", "Lighthearted Comedy", "Teen Drama / Slice of Life", "Custom"];
+
+export const ART_STYLES = [
+    "Standard Comic Book (Modern)",
+    "Vintage 4-Color (1960s)",
+    "Manga (Black & White)",
+    "Noir Etching / Crosshatching",
+    "Ukiyo-e Woodblock Print",
+    "Claymation / Stop-Motion",
+    "Pixel Art (16-bit)",
+    "Oil Painting (Impressionist)",
+    "Synthwave / Neon Glitch",
+    "Watercolor & Ink"
+];
+
 export const TONES = [
     "ACTION-HEAVY (Short, punchy dialogue. Focus on kinetics.)",
     "INNER-MONOLOGUE (Heavy captions revealing thoughts.)",
@@ -74,6 +88,7 @@ export interface SavedState {
   hero: Persona | null;
   friend: Persona | null;
   selectedGenre: string;
+  selectedArtStyle: string; // New field
   selectedLanguage: string;
   customPremise: string;
   storyTone: string;
@@ -95,6 +110,7 @@ export interface SharedBeat {
 
 export interface SharedStory {
     gen: string; // genre
+    style?: string; // art style
     lang: string;
     t: string; // tone
     p: string; // premise

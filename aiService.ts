@@ -1,3 +1,4 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -263,11 +264,12 @@ export const generatePanelImage = async (
         hero?: Persona | null;
         friend?: Persona | null;
         selectedGenre: string;
+        selectedArtStyle: string;
         selectedLanguage: string;
         modelName: string;
     }
 ): Promise<string> => {
-    const { beat, type, hero, friend, selectedGenre, selectedLanguage, modelName } = params;
+    const { beat, type, hero, friend, selectedGenre, selectedArtStyle, selectedLanguage, modelName } = params;
     const ai = getClient(apiKey);
     
     const contents = [];
@@ -280,8 +282,15 @@ export const generatePanelImage = async (
         contents.push({ inlineData: { mimeType: 'image/jpeg', data: friend.base64 } });
     }
 
-    const styleEra = selectedGenre === 'Custom' ? "Modern American" : selectedGenre;
-    let promptText = `STYLE: ${styleEra} comic book art, detailed ink, vibrant colors. `;
+    // Default to genre-based style if "Standard" is selected, otherwise use the explicit art style override
+    let styleEra = selectedGenre === 'Custom' ? "Modern American" : selectedGenre;
+    let visualMedium = `comic book art (${styleEra})`;
+    
+    if (selectedArtStyle && !selectedArtStyle.includes("Standard")) {
+        visualMedium = `${selectedArtStyle}`;
+    }
+
+    let promptText = `STYLE: ${visualMedium}. High quality, detailed. `;
     
     if (type === 'cover') {
         const langName = LANGUAGES.find(l => l.code === selectedLanguage)?.name || "English";

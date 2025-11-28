@@ -6,7 +6,7 @@
 */
 
 import React, { useState, useEffect } from 'react';
-import { GENRES, LANGUAGES, Persona, UiLanguage } from './types';
+import { GENRES, ART_STYLES, LANGUAGES, Persona, UiLanguage } from './types';
 import { TRANSLATIONS, REMIXES_EN, REMIXES_RU } from './translations';
 
 interface SetupProps {
@@ -17,6 +17,7 @@ interface SetupProps {
     hero: Persona | null;
     friend: Persona | null;
     selectedGenre: string;
+    selectedArtStyle: string;
     selectedLanguage: string;
     customPremise: string;
     richMode: boolean;
@@ -26,6 +27,7 @@ interface SetupProps {
     onHeroNameChange: (name: string) => void;
     onFriendNameChange: (name: string) => void;
     onGenreChange: (val: string) => void;
+    onArtStyleChange: (val: string) => void;
     onLanguageChange: (val: string) => void;
     onPremiseChange: (val: string) => void;
     onRichModeChange: (val: boolean) => void;
@@ -227,10 +229,20 @@ export const Setup: React.FC<SetupProps> = (props) => {
                                 )}
                             </div>
                             
-                            <label className="flex items-center gap-2 font-comic text-base cursor-pointer text-black mt-1 p-1 hover:bg-yellow-100 rounded border-2 border-transparent hover:border-yellow-300 transition-colors">
-                                <input disabled={props.isSharedMode} type="checkbox" checked={props.richMode} onChange={(e) => props.onRichModeChange(e.target.checked)} className="w-4 h-4 accent-black disabled:opacity-50" />
-                                <span className="text-black">{t.novelMode}</span>
-                            </label>
+                            <div className="space-y-2">
+                                <label className="flex items-center gap-2 font-comic text-base cursor-pointer text-black mt-1 p-1 hover:bg-yellow-100 rounded border-2 border-transparent hover:border-yellow-300 transition-colors">
+                                    <input disabled={props.isSharedMode} type="checkbox" checked={props.richMode} onChange={(e) => props.onRichModeChange(e.target.checked)} className="w-4 h-4 accent-black disabled:opacity-50" />
+                                    <span className="text-black">{t.novelMode}</span>
+                                </label>
+                                
+                                {/* New ART STYLE Section filling the empty block */}
+                                <div className="mt-2 pt-2 border-t-2 border-black/10">
+                                     <p className="font-comic text-base mb-1 font-bold text-gray-800">{t.artStyle}</p>
+                                     <select disabled={props.isSharedMode} value={props.selectedArtStyle} onChange={(e) => props.onArtStyleChange(e.target.value)} className="w-full font-comic text-lg p-1 border-2 border-black uppercase bg-white text-black cursor-pointer shadow-[3px_3px_0px_rgba(0,0,0,0.2)] disabled:opacity-50">
+                                         {ART_STYLES.map(s => <option key={s} value={s} className="text-black">{s}</option>)}
+                                     </select>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
