@@ -1,5 +1,7 @@
 # 🦸‍♂️ Infinite Heroes: The AI Serial Comic Engine
 
+[![Live Demo](https://img.shields.io/badge/Play-Live_Demo-FFD700?style=for-the-badge&logo=google-gemini&logoColor=black)](https://comics.zae.life/)
+
 **Infinite Heroes** is a client-side, multimodal AI application that turns users into the protagonists of an infinite, evolving comic book series.
 
 Built with **React 19** and the **Google Gemini API**, it goes beyond simple image generation by implementing a persistent "Nemesis System," structured narrative theory, and complex state management to create a cohesive reading experience.
@@ -29,25 +31,43 @@ Unlike one-shot generators, Infinite Heroes remembers.
 
 ---
 
-## 🤖 Technical Architecture
+## 🧠 Architecture & Flow
 
-### The Narrative Engine (`aiService.ts`)
-The AI doesn't just "write a story." It follows a strict **Campbell/Propp Narrative Circle**:
-1.  **Page 1:** Status Quo
-2.  **Page 2:** Inciting Incident (The Villain appears)
-3.  **Page 3:** Crossing the Threshold (User Decision)
-4.  **Page 6:** The Ordeal (Midpoint Climax)
-5.  **Page 10:** Resolution / Cliffhanger
+### The Generation Pipeline
 
-The prompt engineering uses **Chain-of-Thought** logic where the context window includes:
-*   Summary of previous issues (The "Series Bible").
-*   Visual descriptions of established characters.
-*   Strict JSON Schema validation to ensure the UI never breaks.
+```mermaid
+graph TD
+    User[User Input] -->|Hero Photo + Genre| Setup
+    Setup -->|Init| App
+    
+    subgraph "AI Narrative Engine"
+        App -->|Context + History| TextModel[Gemini 2.5 Flash]
+        TextModel -->|JSON Beat| Logic[Narrative Logic (Campbell/Propp)]
+        Logic -->|Validated Prompt| ImageModel[Gemini 2.5 Flash-Image]
+    end
+    
+    subgraph "Client Storage"
+        ImageModel -->|Base64 Data| UI[React UI]
+        UI -->|Auto-Save| DB[(IndexedDB)]
+        UI -->|Sync| Webhook[External Webhook]
+    end
+```
 
-### The Rendering Pipeline (`Panel.tsx`)
-1.  **Prompt Construction:** Merges User Persona + Art Style + Scene Description.
-2.  **Reference Injection:** Uses Gemini's Multimodal capabilities to pass the user's photo as an `inlineData` reference for character consistency.
-3.  **Layering:** Text bubbles are rendered as HTML overlays on top of the canvas, allowing for translation and accessibility (Screen Readers) that baked-in text would miss.
+### The Nemesis Loop
+
+```mermaid
+stateDiagram-v2
+    [*] --> Issue_1
+    Issue_1 --> Story_Summary: User Completes Issue
+    
+    state "AI Analysis" as AI {
+        Story_Summary --> Villain_Analysis: Identify Antagonist
+        Villain_Analysis --> Evolution: Apply Battle Scars
+    }
+    
+    Evolution --> Issue_2: Inject "Returning" Villain
+    Issue_2 --> [*]: Cycle Continues
+```
 
 ---
 
@@ -94,6 +114,13 @@ export const ART_STYLES = [..., "80s Anime", "Charcoal Sketch"];
 
 ### Adjusting Pacing
 Modify `aiService.ts` -> `STORY_CIRCLE` object to change the narrative beats per page.
+
+---
+
+## 📸 Gallery
+
+![Comic Example](https://via.placeholder.com/800x450.png/000000/FFFFFF?text=Infinite+Heroes+Generated+Page)
+*(Example of a generated parallax panel with text overlay)*
 
 ---
 
