@@ -5,3 +5,72 @@
 .font-comic {
   font-family: 'Bangers', 'Neucha', cursive;
 }
+
+/* --- ANIMATIONS (Centralized) --- */
+
+@keyframes knockout-exit {
+  0% { transform: scale(1) rotate(1deg); }
+  15% { transform: scale(1.1) rotate(-5deg); }
+  100% { transform: translateY(-200vh) rotate(1080deg) scale(0.5); opacity: 1; }
+}
+
+@keyframes pow-enter {
+   0% { transform: translate(-50%, -50%) scale(0) rotate(-45deg); opacity: 0; }
+   30% { transform: translate(-50%, -50%) scale(1.5) rotate(10deg); opacity: 1; }
+   100% { transform: translate(-50%, -50%) scale(1.8) rotate(0deg); opacity: 0; }
+}
+
+@keyframes comic-pop {
+    0% { transform: translate(-50%, -50%) scale(0.2) rotate(var(--rot)); opacity: 0; }
+    20% { transform: translate(-50%, -50%) scale(1.5) rotate(var(--rot)); opacity: 1; }
+    40% { transform: translate(-50%, -50%) scale(1.0) rotate(var(--rot)); opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.1) rotate(var(--rot)); opacity: 0; }
+}
+
+@keyframes kenBurnsIn { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+@keyframes kenBurnsOut { 0% { transform: scale(1.1); } 100% { transform: scale(1); } }
+@keyframes panRight { 0% { transform: translateX(0) scale(1.05); } 100% { transform: translateX(-2%) scale(1.05); } }
+@keyframes panLeft { 0% { transform: translateX(0) scale(1.05); } 100% { transform: translateX(2%) scale(1.05); } }
+
+@keyframes popIn { 
+    0% { transform: scale(0); opacity: 0; } 
+    60% { transform: scale(1.1); opacity: 1; } 
+    100% { transform: scale(1); opacity: 1; } 
+}
+
+@keyframes slideDownFade { 
+    0% { transform: translateY(-20px); opacity: 0; } 
+    100% { transform: translateY(0); opacity: 1; } 
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+/* --- UTILITY CLASSES --- */
+
+.animate-knockout-exit { animation: knockout-exit 1s forwards cubic-bezier(.6,-0.28,.74,.05); }
+.animate-pow-enter { animation: pow-enter 1s forwards ease-out; }
+.animate-comic-pop { animation: comic-pop 1.8s forwards ease-out; }
+
+.animate-ken-burns-in { animation: kenBurnsIn 15s ease-out forwards; }
+.animate-ken-burns-out { animation: kenBurnsOut 15s ease-out forwards; }
+.animate-pan-right { animation: panRight 15s ease-in-out alternate infinite; }
+.animate-pan-left { animation: panLeft 15s ease-in-out alternate infinite; }
+
+.animate-pop-in { animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+.animate-slide-down { animation: slideDownFade 0.8s ease-out forwards; }
+.animate-float { animation: float 3s ease-in-out infinite; }
+
+.halftone-overlay {
+    background-image: radial-gradient(circle, #000 1px, transparent 1px);
+    background-size: 6px 6px;
+    opacity: 0.08;
+    pointer-events: none;
+}
+
+.caption-scroll::-webkit-scrollbar { width: 4px; }
+.caption-scroll::-webkit-scrollbar-track { background: transparent; }
+.caption-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }

@@ -4,7 +4,6 @@
 */
 
 import React, { useState, useRef, useEffect } from 'react';
-import jsPDF from 'jspdf';
 import { MAX_STORY_PAGES, BACK_COVER_PAGE, TOTAL_PAGES, INITIAL_PAGES, BATCH_SIZE, DECISION_PAGES, GENRES, ART_STYLES, TONES, LANGUAGES, ComicFace, Beat, Persona, UiLanguage, SavedState, SharedStory, SharedBeat, SeriesProgress } from './types';
 import { Setup } from './Setup';
 import { Book } from './Book';
@@ -12,6 +11,7 @@ import { useApiKey } from './useApiKey';
 import { ApiKeyDialog } from './ApiKeyDialog';
 import { generateStoryBeat, generateCharacterImage, generatePanelImage, generateIssueSummary, generateVillain } from './aiService';
 import { db } from './db';
+import { generatePDF } from './pdfGenerator';
 
 // --- Constants ---
 const MODEL_TEXT_NAME = "gemini-2.5-flash";
@@ -53,9 +53,6 @@ const App: React.FC = () => {
                   setSelectedLanguage(data.lang);
                   setStoryTone(data.t);
                   setCustomPremise(data.p);
-                  // Clear local save if loading a shared link to avoid conflicts
-                  // Note: We don't wipe DB here automatically to prevent accidental data loss, 
-                  // but we won't load from it if we are in shared mode.
               }
           } catch (e) {
               console.error("Failed to parse shared story", e);
@@ -189,7 +186,6 @@ const App: React.FC = () => {
           const data = await db.load(SAVE_KEY);
           if (!data) return;
           
-          // Show some UI feedback?
           alert("Syncing to cloud...");
           await fetch(webhookUrl, {
               method: 'POST',
@@ -311,7 +307,7 @@ const App: React.FC = () => {
            }
       }
 
-      // Generate Friend Image if needed (and not already existing)
+      // Generate Friend Image if needed
       if (beat.focus_char === 'friend' && !friendRef.current && type === 'story') {
           try {
               const desc = selectedGenre === 'Custom' ? "A fitting sidekick for this story" : `Sidekick for ${selectedGenre} story.`;
@@ -336,7 +332,7 @@ const App: React.FC = () => {
               type,
               hero: heroRef.current,
               friend: friendRef.current,
-              villain: seriesProgress?.villain, // Pass Villain
+              villain: seriesProgress?.villain, 
               selectedGenre,
               selectedArtStyle,
               selectedLanguage,
@@ -397,17 +393,12 @@ const App: React.FC = () => {
         return;
     }
     
-    // Ensure names exist
     if (!heroRef.current.name.trim()) setHero({ ...heroRef.current, name: "The Hero" });
     if (friendRef.current && !friendRef.current.name.trim()) setFriend({ ...friendRef.current, name: "The Sidekick" });
 
-    // Clear previous save on new launch (but NOT series progress if continuing)
-    // Actually, launchStory is for starting from Setup. If SeriesProgress exists, we keep it.
-    
     setIsTransitioning(true);
     
     if (!sharedStory) {
-        // Random tone only if new story (or new issue)
         let availableTones = TONES;
         if (selectedGenre === "Teen Drama / Slice of Life" || selectedGenre === "Lighthearted Comedy") {
             availableTones = TONES.filter(t => t.includes("CASUAL") || t.includes("WHOLESOME") || t.includes("QUIPPY"));
@@ -436,16 +427,9 @@ const App: React.FC = () => {
   // --- NEMESIS SYSTEM: CONTINUE SERIES ---
   const handleNextIssue = async () => {
     setIsGeneratingNextIssue(true);
-    
     try {
-        // 1. Summarize Current Issue
         const summary = await generateIssueSummary(apiKey, historyRef.current, heroRef.current?.name || "Hero");
-        
-        // 2. Generate or Evolve Villain
-        // Pass current villain (if any) to evolve them
         const villain = await generateVillain(apiKey, summary, seriesProgress?.villain || null);
-        
-        // 3. Update Series Progress
         const nextIssueNum = (seriesProgress?.issueNumber || 1) + 1;
         const newProgress: SeriesProgress = {
             issueNumber: nextIssueNum,
@@ -453,23 +437,17 @@ const App: React.FC = () => {
             villain: villain
         };
         setSeriesProgress(newProgress);
-
-        // 4. Rotate Genre for variety (Roguelike element)
         const currentGenreIdx = GENRES.indexOf(selectedGenre);
         if (selectedGenre !== 'Custom' && currentGenreIdx !== -1) {
-             const nextGenre = GENRES[(currentGenreIdx + 1) % (GENRES.length - 1)]; // Skip Custom
+             const nextGenre = GENRES[(currentGenreIdx + 1) % (GENRES.length - 1)]; 
              setSelectedGenre(nextGenre);
-             setCustomPremise(""); // Clear premise if rotating
+             setCustomPremise(""); 
         }
-
-        // 5. Reset App State for new run
         setIsStarted(false);
         setComicFaces([]);
         setCurrentSheetIndex(0);
         historyRef.current = [];
         generatingPages.current.clear();
-        
-        // 6. Show Setup again (with new Issue # and Villain card)
         setShowSetup(true);
 
     } catch (e) {
@@ -481,14 +459,9 @@ const App: React.FC = () => {
   };
 
   const handleChoice = (pageIndex: number, choice: string) => {
-      // 1. Immediate Visual Feedback
       updateFaceState(`page-${pageIndex}`, { selectedChoice: choice });
-
-      // 2. Delay for 1 second
       setTimeout(() => {
-          // 3. Commit the choice
           updateFaceState(`page-${pageIndex}`, { resolvedChoice: choice });
-          
           const maxPage = Math.max(...historyRef.current.map(f => f.pageIndex || 0));
           if (maxPage + 1 <= TOTAL_PAGES) {
               generateBatch(maxPage + 1, BATCH_SIZE);
@@ -503,41 +476,15 @@ const App: React.FC = () => {
       setCurrentSheetIndex(0);
       historyRef.current = [];
       generatingPages.current.clear();
-      setSeriesProgress(null); // Clear series progress on full reset
-      
+      setSeriesProgress(null); 
       if (sharedStory) {
           window.history.pushState({}, document.title, window.location.pathname);
           setSharedStory(null);
       }
   };
 
-  const downloadPDF = () => {
-    const PAGE_WIDTH = 480;
-    const PAGE_HEIGHT = 720;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [PAGE_WIDTH, PAGE_HEIGHT] });
-    const pagesToPrint = comicFaces.filter(face => face.imageUrl && !face.isLoading).sort((a, b) => (a.pageIndex || 0) - (b.pageIndex || 0));
-
-    pagesToPrint.forEach((face, index) => {
-        if (index > 0) doc.addPage([PAGE_WIDTH, PAGE_HEIGHT], 'portrait');
-        if (face.imageUrl) doc.addImage(face.imageUrl, 'JPEG', 0, 0, PAGE_WIDTH, PAGE_HEIGHT);
-        
-        if (face.type === 'story' && face.narrative) {
-             doc.setFont("courier", "bold");
-             if (face.narrative.caption) {
-                 doc.setFontSize(10);
-                 doc.setFillColor(254, 240, 138); 
-                 doc.rect(10, 10, PAGE_WIDTH - 60, 40, 'F');
-                 doc.text(face.narrative.caption, 15, 25, { maxWidth: PAGE_WIDTH - 70 });
-             }
-             if (face.narrative.dialogue) {
-                 doc.setFontSize(12);
-                 doc.setFillColor(255, 255, 255);
-                 doc.circle(PAGE_WIDTH - 100, PAGE_HEIGHT - 60, 50, 'F');
-                 doc.text(face.narrative.dialogue, PAGE_WIDTH - 100, PAGE_HEIGHT - 60, { align: 'center', maxWidth: 80 });
-             }
-        }
-    });
-    doc.save('Infinite-Heroes-Issue.pdf');
+  const handleDownloadPDF = () => {
+      generatePDF(comicFaces);
   };
 
   const handleHeroUpload = async (file: File) => {
@@ -594,7 +541,7 @@ const App: React.FC = () => {
           richMode={richMode}
           webhookUrl={webhookUrl}
           isSharedMode={!!sharedStory}
-          seriesProgress={seriesProgress} // Pass Series Data
+          seriesProgress={seriesProgress} 
           onHeroUpload={handleHeroUpload}
           onFriendUpload={handleFriendUpload}
           onHeroNameChange={(name) => handleHeroNameChange(name)}
@@ -618,15 +565,15 @@ const App: React.FC = () => {
           isStarted={isStarted}
           isSetupVisible={showSetup && !isTransitioning}
           uiLang={uiLang}
-          seriesProgress={seriesProgress} // Pass Series Data
+          seriesProgress={seriesProgress} 
           onSheetClick={handleSheetClick}
           onChoice={handleChoice}
           onOpenBook={() => setCurrentSheetIndex(1)}
-          onDownload={downloadPDF}
+          onDownload={handleDownloadPDF}
           onReset={resetApp}
           onShare={getShareLink}
-          onNextIssue={handleNextIssue} // Connect handler
-          isGeneratingNextIssue={isGeneratingNextIssue} // Connect loading state
+          onNextIssue={handleNextIssue} 
+          isGeneratingNextIssue={isGeneratingNextIssue} 
       />
     </div>
   );

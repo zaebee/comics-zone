@@ -4,7 +4,7 @@
 */
 
 import React, { useState, useEffect } from 'react';
-import { GENRES, ART_STYLES, LANGUAGES, Persona, UiLanguage, Villain, SeriesProgress } from './types';
+import { GENRES, ART_STYLES, LANGUAGES, Persona, UiLanguage, SeriesProgress } from './types';
 import { TRANSLATIONS, REMIXES_EN, REMIXES_RU } from './translations';
 import { db } from './db';
 
@@ -22,7 +22,7 @@ interface SetupProps {
     richMode: boolean;
     webhookUrl: string;
     isSharedMode?: boolean; 
-    seriesProgress?: SeriesProgress | null; // NEW
+    seriesProgress?: SeriesProgress | null;
     onHeroUpload: (file: File) => void;
     onFriendUpload: (file: File) => void;
     onHeroNameChange: (name: string) => void;
@@ -72,7 +72,6 @@ export const Setup: React.FC<SetupProps> = (props) => {
     const [showSettings, setShowSettings] = useState(false);
 
     useEffect(() => {
-        // Check IndexedDB for save
         const checkSave = async () => {
              try {
                 const save = await db.load('infinite_heroes_save_v1');
@@ -86,20 +85,8 @@ export const Setup: React.FC<SetupProps> = (props) => {
 
     return (
         <>
-        <style>{`
-             @keyframes knockout-exit {
-                0% { transform: scale(1) rotate(1deg); }
-                15% { transform: scale(1.1) rotate(-5deg); }
-                100% { transform: translateY(-200vh) rotate(1080deg) scale(0.5); opacity: 1; }
-             }
-             @keyframes pow-enter {
-                 0% { transform: translate(-50%, -50%) scale(0) rotate(-45deg); opacity: 0; }
-                 30% { transform: translate(-50%, -50%) scale(1.5) rotate(10deg); opacity: 1; }
-                 100% { transform: translate(-50%, -50%) scale(1.8) rotate(0deg); opacity: 0; }
-             }
-          `}</style>
         {props.isTransitioning && (
-            <div className="fixed top-1/2 left-1/2 z-[210] pointer-events-none" style={{ animation: 'pow-enter 1s forwards ease-out' }}>
+            <div className="fixed top-1/2 left-1/2 z-[210] pointer-events-none animate-pow-enter">
                 <svg viewBox="0 0 200 150" className="w-[500px] h-[400px] drop-shadow-[0_10px_0_rgba(0,0,0,0.5)]">
                     <path d="M95.7,12.8 L110.2,48.5 L148.5,45.2 L125.6,74.3 L156.8,96.8 L119.4,105.5 L122.7,143.8 L92.5,118.6 L60.3,139.7 L72.1,103.2 L34.5,108.8 L59.9,79.9 L24.7,57.3 L62.5,54.4 L61.2,16.5 z" fill="#FFD700" stroke="black" strokeWidth="4"/>
                     <text x="100" y="95" textAnchor="middle" fontFamily="'Bangers', cursive" fontSize="70" fill="#DC2626" stroke="black" strokeWidth="2" transform="rotate(-5 100 75)">POW!</text>
@@ -107,13 +94,7 @@ export const Setup: React.FC<SetupProps> = (props) => {
             </div>
         )}
         
-        <div className={`fixed inset-0 z-[200] overflow-y-auto`}
-             style={{
-                 background: props.isTransitioning ? 'transparent' : 'rgba(0,0,0,0.85)', 
-                 backdropFilter: props.isTransitioning ? 'none' : 'blur(6px)',
-                 animation: props.isTransitioning ? 'knockout-exit 1s forwards cubic-bezier(.6,-0.28,.74,.05)' : 'none',
-                 pointerEvents: props.isTransitioning ? 'none' : 'auto'
-             }}>
+        <div className={`fixed inset-0 z-[200] overflow-y-auto ${props.isTransitioning ? 'animate-knockout-exit pointer-events-none bg-transparent' : 'bg-black/85 backdrop-blur-sm'}`}>
           <div className="min-h-full flex items-center justify-center p-4 pb-32 md:pb-24">
             <div className="max-w-[900px] w-full bg-white p-4 md:p-5 rotate-1 border-[6px] border-black shadow-[12px_12px_0px_rgba(0,0,0,0.6)] text-center relative">
                 
@@ -208,7 +189,7 @@ export const Setup: React.FC<SetupProps> = (props) => {
                             )}
                         </div>
                         
-                        {/* NEMESIS CARD (Only if issue > 1 and villain exists) */}
+                        {/* NEMESIS CARD */}
                         {props.seriesProgress?.villain && (
                              <div className="p-3 border-4 border-black bg-red-900 relative mt-2">
                                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white font-comic text-sm px-2 border-2 border-black uppercase whitespace-nowrap">

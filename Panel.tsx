@@ -1,4 +1,3 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -8,6 +7,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { ComicFace, INITIAL_PAGES, GATE_PAGE, UiLanguage, SeriesProgress } from './types';
 import { LoadingFX } from './LoadingFX';
 import { TRANSLATIONS } from './translations';
+import { Typewriter } from './Typewriter';
 
 interface PanelProps {
     face?: ComicFace;
@@ -22,33 +22,6 @@ interface PanelProps {
     onNextIssue?: () => void;
     isGeneratingNextIssue?: boolean;
 }
-
-const TypewriterText = ({ text, delay = 0 }: { text: string, delay?: number }) => {
-    const [currentText, setCurrentText] = useState('');
-    
-    useEffect(() => {
-        let timeoutId: any;
-        let intervalId: any;
-        
-        setCurrentText('');
-        
-        timeoutId = setTimeout(() => {
-            let i = 0;
-            intervalId = setInterval(() => {
-                setCurrentText(text.slice(0, i + 1));
-                i++;
-                if (i >= text.length) clearInterval(intervalId);
-            }, 20); // Typing speed
-        }, delay);
-        
-        return () => {
-            clearTimeout(timeoutId);
-            clearInterval(intervalId);
-        };
-    }, [text, delay]);
-    
-    return <>{currentText}</>;
-};
 
 export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProgress, onChoice, onOpenBook, onDownload, onReset, onShare, onNextIssue, isGeneratingNextIssue }) => {
     const t = TRANSLATIONS[uiLang];
@@ -110,48 +83,6 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
         >
-             <style>{`
-                @keyframes kenBurnsIn { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
-                @keyframes kenBurnsOut { 0% { transform: scale(1.1); } 100% { transform: scale(1); } }
-                @keyframes panRight { 0% { transform: translateX(0) scale(1.05); } 100% { transform: translateX(-2%) scale(1.05); } }
-                @keyframes panLeft { 0% { transform: translateX(0) scale(1.05); } 100% { transform: translateX(2%) scale(1.05); } }
-                
-                @keyframes popIn { 
-                    0% { transform: scale(0); opacity: 0; } 
-                    60% { transform: scale(1.1); opacity: 1; } 
-                    100% { transform: scale(1); opacity: 1; } 
-                }
-                @keyframes slideDownFade { 
-                    0% { transform: translateY(-20px); opacity: 0; } 
-                    100% { transform: translateY(0); opacity: 1; } 
-                }
-                @keyframes float {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-4px); }
-                }
-
-                .animate-ken-burns-in { animation: kenBurnsIn 15s ease-out forwards; }
-                .animate-ken-burns-out { animation: kenBurnsOut 15s ease-out forwards; }
-                .animate-pan-right { animation: panRight 15s ease-in-out alternate infinite; }
-                .animate-pan-left { animation: panLeft 15s ease-in-out alternate infinite; }
-                
-                .animate-pop-in { animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-                .animate-slide-down { animation: slideDownFade 0.8s ease-out forwards; }
-                .animate-float { animation: float 3s ease-in-out infinite; }
-                
-                .halftone-overlay {
-                    background-image: radial-gradient(circle, #000 1px, transparent 1px);
-                    background-size: 6px 6px;
-                    opacity: 0.08;
-                    pointer-events: none;
-                }
-                
-                /* Custom scrollbar for caption box */
-                .caption-scroll::-webkit-scrollbar { width: 4px; }
-                .caption-scroll::-webkit-scrollbar-track { background: transparent; }
-                .caption-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 4px; }
-            `}</style>
-
             <div className="gloss"></div>
             
             {/* --- IMAGE LAYER (Parallax Back) --- */}
@@ -212,12 +143,11 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
                     {/* Narrative Caption */}
                     {face.narrative.caption && (
                         <div className="absolute top-0 left-0 right-0 p-3 animate-slide-down" style={{animationDelay: '0.3s'}}>
-                            {/* Flex container to center or align text, avoiding full cover */}
                             <div className="flex justify-start">
                                 <div className="bg-yellow-200 border-2 border-black p-2 shadow-[2px_2px_0px_rgba(0,0,0,0.5)] max-w-[95%] transform rotate-[-0.5deg]">
                                     <div className="caption-scroll max-h-[120px] overflow-y-auto pr-1">
                                         <p className="font-comic text-black text-sm md:text-base leading-tight font-bold tracking-wide">
-                                            <TypewriterText text={face.narrative.caption} delay={500} />
+                                            <Typewriter text={face.narrative.caption} delay={500} />
                                         </p>
                                     </div>
                                 </div>
@@ -230,7 +160,7 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
                         <div className="absolute bottom-16 right-3 max-w-[85%] flex justify-end animate-pop-in" style={{animationDelay: '0.8s'}}>
                             <div className="relative bg-white border-2 border-black rounded-[20px] rounded-br-none p-3 shadow-[4px_4px_0px_rgba(0,0,0,0.3)] transform rotate-[1deg] animate-float">
                                 <p className="font-comic text-black text-lg md:text-xl leading-snug">
-                                    <TypewriterText text={face.narrative.dialogue} delay={1000} />
+                                    <Typewriter text={face.narrative.dialogue} delay={1000} />
                                 </p>
                                 <div className="absolute -bottom-[10px] right-0 w-0 h-0 border-l-[10px] border-l-transparent border-r-[0px] border-r-transparent border-t-[12px] border-t-black"></div>
                                 <div className="absolute -bottom-[6px] right-[2px] w-0 h-0 border-l-[8px] border-l-transparent border-r-[0px] border-r-transparent border-t-[9px] border-t-white"></div>
@@ -241,7 +171,7 @@ export const Panel: React.FC<PanelProps> = ({ face, allFaces, uiLang, seriesProg
                 )}
             </div>
 
-            {/* Decision Buttons (Static Z-Index layer) */}
+            {/* Decision Buttons */}
             {face.isDecisionPage && face.choices.length > 0 && (
                 <div className={`absolute bottom-0 inset-x-0 p-6 pb-12 flex flex-col gap-3 items-center justify-end transition-opacity duration-500 ${face.resolvedChoice ? 'opacity-0 pointer-events-none' : 'opacity-100'} bg-gradient-to-t from-black/90 via-black/50 to-transparent z-20`}>
                     <p className={`text-white font-comic text-2xl uppercase tracking-widest ${face.selectedChoice ? 'opacity-0' : 'animate-pulse'}`}>{t.whatDrivesYou}</p>
