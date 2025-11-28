@@ -1,4 +1,3 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -12,6 +11,7 @@ import { Book } from './Book';
 import { useApiKey } from './useApiKey';
 import { ApiKeyDialog } from './ApiKeyDialog';
 import { generateStoryBeat, generateCharacterImage, generatePanelImage, generateIssueSummary, generateVillain } from './aiService';
+import { db } from './db';
 
 // --- Constants ---
 const MODEL_TEXT_NAME = "gemini-2.5-flash";
@@ -54,7 +54,8 @@ const App: React.FC = () => {
                   setStoryTone(data.t);
                   setCustomPremise(data.p);
                   // Clear local save if loading a shared link to avoid conflicts
-                  localStorage.removeItem(SAVE_KEY);
+                  // Note: We don't wipe DB here automatically to prevent accidental data loss, 
+                  // but we won't load from it if we are in shared mode.
               }
           } catch (e) {
               console.error("Failed to parse shared story", e);
@@ -70,6 +71,7 @@ const App: React.FC = () => {
   const [customPremise, setCustomPremise] = useState("");
   const [storyTone, setStoryTone] = useState(TONES[0]);
   const [richMode, setRichMode] = useState(true);
+  const [webhookUrl, setWebhookUrl] = useState("");
   
   const heroRef = useRef<Persona | null>(null);
   const friendRef = useRef<Persona | null>(null);
@@ -88,37 +90,43 @@ const App: React.FC = () => {
   const generatingPages = useRef(new Set<number>());
   const historyRef = useRef<ComicFace[]>([]);
 
-  // --- Auto-Save ---
+  // --- Auto-Save to IndexedDB ---
   useEffect(() => {
     // Don't auto-save if we are in Shared Mode (User B shouldn't overwrite their own saves with a shared view)
     if (isStarted && comicFaces.length > 0 && !sharedStory) {
-        try {
-            const stateToSave: SavedState = {
-                hero: heroRef.current,
-                friend: friendRef.current,
-                selectedGenre,
-                selectedArtStyle,
-                selectedLanguage,
-                customPremise,
-                storyTone,
-                richMode,
-                comicFaces,
-                currentSheetIndex,
-                isStarted: true,
-                seriesProgress: seriesProgress || undefined
-            };
-            localStorage.setItem(SAVE_KEY, JSON.stringify(stateToSave));
-        } catch (e) {
-            console.error("Failed to save progress to local storage", e);
-        }
+        const saveData = async () => {
+            try {
+                const stateToSave: SavedState = {
+                    hero: heroRef.current,
+                    friend: friendRef.current,
+                    selectedGenre,
+                    selectedArtStyle,
+                    selectedLanguage,
+                    customPremise,
+                    storyTone,
+                    richMode,
+                    comicFaces,
+                    currentSheetIndex,
+                    isStarted: true,
+                    seriesProgress: seriesProgress || undefined,
+                    webhookUrl
+                };
+                await db.save(SAVE_KEY, stateToSave);
+            } catch (e) {
+                console.error("Failed to save progress to DB", e);
+            }
+        };
+        saveData();
     }
-  }, [comicFaces, currentSheetIndex, isStarted, selectedGenre, selectedArtStyle, selectedLanguage, customPremise, storyTone, richMode, sharedStory, seriesProgress]);
+  }, [comicFaces, currentSheetIndex, isStarted, selectedGenre, selectedArtStyle, selectedLanguage, customPremise, storyTone, richMode, sharedStory, seriesProgress, webhookUrl]);
 
-  const loadFromSave = () => {
+  const loadFromSave = async () => {
       try {
-          const raw = localStorage.getItem(SAVE_KEY);
-          if (!raw) return;
-          const data = JSON.parse(raw) as SavedState;
+          const data = await db.load(SAVE_KEY) as SavedState;
+          if (!data) {
+              alert("No saved game found.");
+              return;
+          }
           
           setHero(data.hero);
           setFriend(data.friend);
@@ -132,6 +140,7 @@ const App: React.FC = () => {
           setCurrentSheetIndex(data.currentSheetIndex);
           setIsStarted(true);
           if (data.seriesProgress) setSeriesProgress(data.seriesProgress);
+          if (data.webhookUrl) setWebhookUrl(data.webhookUrl);
           
           // Sync Refs
           heroRef.current = data.hero;
@@ -145,6 +154,54 @@ const App: React.FC = () => {
           alert("Could not load saved comic. Data might be corrupted.");
       }
   };
+
+  const handleExportSave = async () => {
+      try {
+          const data = await db.load(SAVE_KEY);
+          if (!data) { alert("No save data to export."); return; }
+          const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `infinite-heroes-save-${Date.now()}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+      } catch (e) { console.error(e); alert("Export failed"); }
+  };
+
+  const handleImportSave = (file: File) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+          try {
+              const json = JSON.parse(e.target?.result as string);
+              await db.save(SAVE_KEY, json);
+              alert("Import successful! Click 'Resume' to load.");
+              // Trigger reload UI update if needed, or just let user click resume
+              window.location.reload(); 
+          } catch (err) { alert("Invalid save file."); }
+      };
+      reader.readAsText(file);
+  };
+
+  const handleWebhookSync = async () => {
+      if (!webhookUrl) return;
+      try {
+          const data = await db.load(SAVE_KEY);
+          if (!data) return;
+          
+          // Show some UI feedback?
+          alert("Syncing to cloud...");
+          await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+          });
+          alert("Sync successful!");
+      } catch (e) {
+          console.error("Webhook sync failed", e);
+          alert("Sync failed. Check console for details.");
+      }
+  }
 
   // --- Helpers ---
   const handleAPIError = (e: any) => {
@@ -535,6 +592,7 @@ const App: React.FC = () => {
           selectedLanguage={selectedLanguage}
           customPremise={customPremise}
           richMode={richMode}
+          webhookUrl={webhookUrl}
           isSharedMode={!!sharedStory}
           seriesProgress={seriesProgress} // Pass Series Data
           onHeroUpload={handleHeroUpload}
@@ -546,8 +604,12 @@ const App: React.FC = () => {
           onLanguageChange={setSelectedLanguage}
           onPremiseChange={setCustomPremise}
           onRichModeChange={setRichMode}
+          onWebhookUrlChange={setWebhookUrl}
           onLaunch={launchStory}
           onLoadSave={loadFromSave}
+          onExportSave={handleExportSave}
+          onImportSave={handleImportSave}
+          onSync={handleWebhookSync}
       />
       
       <Book 

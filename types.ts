@@ -1,4 +1,3 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -108,7 +107,8 @@ export interface SavedState {
   comicFaces: ComicFace[];
   currentSheetIndex: number;
   isStarted: boolean;
-  seriesProgress?: SeriesProgress; // New field
+  seriesProgress?: SeriesProgress;
+  webhookUrl?: string; // New field
 }
 
 // Lightweight structure for URL sharing
@@ -128,6 +128,4 @@ export interface SharedStory {
     t: string; // tone
     p: string; // premise
     b: SharedBeat[]; // beats
-    // Note: Series progress is tricky to share simply, so we default to Issue 1 for shares usually, 
-    // or we could add a `vol` field later.
 }

@@ -1,4 +1,3 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -7,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { GENRES, ART_STYLES, LANGUAGES, Persona, UiLanguage, Villain, SeriesProgress } from './types';
 import { TRANSLATIONS, REMIXES_EN, REMIXES_RU } from './translations';
+import { db } from './db';
 
 interface SetupProps {
     show: boolean;
@@ -20,6 +20,7 @@ interface SetupProps {
     selectedLanguage: string;
     customPremise: string;
     richMode: boolean;
+    webhookUrl: string;
     isSharedMode?: boolean; 
     seriesProgress?: SeriesProgress | null; // NEW
     onHeroUpload: (file: File) => void;
@@ -31,8 +32,12 @@ interface SetupProps {
     onLanguageChange: (val: string) => void;
     onPremiseChange: (val: string) => void;
     onRichModeChange: (val: boolean) => void;
+    onWebhookUrlChange: (val: string) => void;
     onLaunch: () => void;
     onLoadSave: () => void;
+    onExportSave: () => void;
+    onImportSave: (file: File) => void;
+    onSync: () => void;
 }
 
 const Footer: React.FC<{uiLang: UiLanguage}> = ({uiLang}) => {
@@ -64,10 +69,17 @@ const Footer: React.FC<{uiLang: UiLanguage}> = ({uiLang}) => {
 export const Setup: React.FC<SetupProps> = (props) => {
     const t = TRANSLATIONS[props.uiLang];
     const [hasSave, setHasSave] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
 
     useEffect(() => {
-        const save = localStorage.getItem('infinite_heroes_save_v1');
-        if (save) setHasSave(true);
+        // Check IndexedDB for save
+        const checkSave = async () => {
+             try {
+                const save = await db.load('infinite_heroes_save_v1');
+                if (save) setHasSave(true);
+             } catch(e) { console.error(e); }
+        };
+        if(props.show) checkSave();
     }, [props.show]);
     
     if (!props.show && !props.isTransitioning) return null;
@@ -216,7 +228,7 @@ export const Setup: React.FC<SetupProps> = (props) => {
                                 </div>
                              </div>
                         )}
-
+                        
                         <p className="text-[10px] text-gray-500 leading-tight mt-1 px-1">
                             {t.privacyPolicy}
                         </p>
@@ -267,6 +279,27 @@ export const Setup: React.FC<SetupProps> = (props) => {
                                      <select disabled={props.isSharedMode} value={props.selectedArtStyle} onChange={(e) => props.onArtStyleChange(e.target.value)} className="w-full font-comic text-lg p-1 border-2 border-black uppercase bg-white text-black cursor-pointer shadow-[3px_3px_0px_rgba(0,0,0,0.2)] disabled:opacity-50">
                                          {ART_STYLES.map(s => <option key={s} value={s} className="text-black">{s}</option>)}
                                      </select>
+                                </div>
+                                
+                                {/* Backup & Sync Settings */}
+                                <div className="mt-2 pt-2 border-t-2 border-black/10">
+                                     <button onClick={() => setShowSettings(!showSettings)} className="text-xs font-bold underline text-gray-500 hover:text-black mb-1">{showSettings ? 'Hide Cloud/Backup Settings' : t.cloudBackupSettings}</button>
+                                     {showSettings && (
+                                         <div className="bg-gray-100 p-2 border border-gray-300 text-sm">
+                                             <div className="mb-2">
+                                                 <label className="block text-xs font-bold mb-1">Webhook URL (n8n/Zapier)</label>
+                                                 <input type="text" value={props.webhookUrl} onChange={(e) => props.onWebhookUrlChange(e.target.value)} className="w-full border p-1 text-xs" placeholder="https://..." />
+                                                 <button onClick={props.onSync} disabled={!props.webhookUrl} className="mt-1 bg-blue-500 text-white text-xs px-2 py-1 hover:bg-blue-600 disabled:opacity-50 w-full">{t.syncNow}</button>
+                                             </div>
+                                             <div className="flex gap-2">
+                                                <button onClick={props.onExportSave} className="flex-1 bg-gray-200 border border-gray-400 text-xs py-1 hover:bg-gray-300">{t.exportSave}</button>
+                                                <label className="flex-1 bg-gray-200 border border-gray-400 text-xs py-1 hover:bg-gray-300 text-center cursor-pointer">
+                                                    {t.importSave}
+                                                    <input type="file" accept=".json" className="hidden" onChange={(e) => e.target.files?.[0] && props.onImportSave(e.target.files[0])} />
+                                                </label>
+                                             </div>
+                                         </div>
+                                     )}
                                 </div>
                             </div>
                         </div>

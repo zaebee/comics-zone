@@ -1,4 +1,3 @@
-
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -42,6 +41,12 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         builtWith: "Build with Gemini",
         createdBy: "Created by @ammaar",
         
+        // Settings / Backup
+        cloudBackupSettings: "Cloud Sync & Backup Settings",
+        syncNow: "Sync to Webhook",
+        exportSave: "Export Save File",
+        importSave: "Import Save File",
+
         // Nemesis / Series
         currentIssue: "ISSUE #",
         wantedVillain: "WANTED: NEMESIS",
@@ -102,6 +107,12 @@ export const TRANSLATIONS: Record<UiLanguage, any> = {
         remixIdea: "ИДЕЯ ДЛЯ РЕМИКСА:",
         builtWith: "Сделано с Gemini",
         createdBy: "Создано @ammaar",
+        
+        // Settings / Backup
+        cloudBackupSettings: "Облако и Резервное Копирование",
+        syncNow: "Синхронизировать (Webhook)",
+        exportSave: "Скачать Сохранение",
+        importSave: "Загрузить Сохранение",
 
         // Nemesis / Series
         currentIssue: "ВЫПУСК №",
