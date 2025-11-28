@@ -270,13 +270,14 @@ export const generatePanelImage = async (
     
     if (type === 'cover') {
         const langName = LANGUAGES.find(l => l.code === selectedLanguage)?.name || "English";
-        promptText += `TYPE: Comic Book Cover. TITLE: "INFINITE HEROES" (OR LOCALIZED TRANSLATION IN ${langName.toUpperCase()}). Main visual: Dynamic action shot of [HERO] (Use REFERENCE 1).`;
+        promptText += `TYPE: Comic Book Cover. TITLE: "INFINITE HEROES" (OR LOCALIZED TRANSLATION IN ${langName.toUpperCase()}). Main visual: Dynamic action shot of [HERO] (Use REFERENCE 1). `;
+        promptText += `INSTRUCTIONS: Maintain strict likeness of the provided reference image for HERO.`;
     } else if (type === 'back_cover') {
         promptText += `TYPE: Comic Back Cover. FULL PAGE VERTICAL ART. Dramatic teaser. Text: "NEXT ISSUE SOON".`;
     } else {
         // We instruct the model to look for the tokens 'HERO' and 'CO-STAR' in the beat.scene
         promptText += `TYPE: Vertical comic panel. SCENE: ${beat.scene}. `;
-        promptText += `INSTRUCTIONS: Maintain strict character likeness. If scene mentions 'HERO', use REFERENCE 1. If scene mentions 'CO-STAR', use REFERENCE 2. `;
+        promptText += `INSTRUCTIONS: Maintain strict character likeness. If scene mentions 'HERO', use REFERENCE 1 and maintain the likeness of the provided reference image for HERO. If scene mentions 'CO-STAR', use REFERENCE 2. `;
         promptText += `IMPORTANT: DO NOT DRAW SPEECH BUBBLES OR CAPTION BOXES. GENERATE A CLEAN ILLUSTRATION ONLY.`;
     }
 
